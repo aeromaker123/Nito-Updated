@@ -1,169 +1,168 @@
--- Da Hood Auto Robbery Script
--- Uses Flame Thrower, Teleports for Ammo, Gets LMG, Breaks Safes, Collects Money
+-- Da Hood Auto Robbery Script (FIXED)
+-- Safer teleporting, no PrimaryPart crashes, better searching
 
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:FindFirstChild("Humanoid")
 
--- Wait for necessary objects
-wait(2)
+local function getChar()
+    character = player.Character or player.CharacterAdded:Wait()
+    return character
+end
 
--- Function to get flame thrower and ammo
+local function getRoot()
+    return getChar():WaitForChild("HumanoidRootPart")
+end
+
+-- Safe teleport function
+local function tp(cf)
+    local root = getRoot()
+    if root then
+        root.CFrame = cf + Vector3.new(0, 3, 0)
+    end
+end
+
+-- Recursive finder
+local function find(name)
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v.Name == name then
+            return v
+        end
+    end
+end
+
+--------------------------------------------------
+-- Flame Thrower + Ammo
+--------------------------------------------------
 function getFlameThrower()
-    local flamer = workspace:FindFirstChild("Flame Thrower")
-    if flamer then
-        -- Teleport to flame thrower location (adjust this based on your map)
-        local flamerLocation = Vector3.new(100, 20, 100) -- Adjust coordinates
-        game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(flamerLocation))
-        
-        -- Wait a bit for teleport to complete
-        wait(1)
-        
-        -- Get ammo (this will be handled by the TP system)
-        local ammo = workspace:FindFirstChild("Ammo")
-        if ammo then
-            print("Getting ammo...")
-            game:GetService("Players").LocalPlayer.Character:SetPrimaryPartCFrame(ammo.PrimaryPart.CFrame)
-            wait(1)
-        end
-        
-        return true
-    else
-        print("Flame Thrower not found!")
+    local flamer = find("FlameThrower") or find("Flame Thrower")
+    if not flamer then
+        warn("Flame Thrower not found")
         return false
     end
+
+    if flamer:IsA("BasePart") then
+        tp(flamer.CFrame)
+    elseif flamer:IsA("Model") and flamer.PrimaryPart then
+        tp(flamer.PrimaryPart.CFrame)
+    end
+
+    task.wait(1)
+
+    local ammo = find("Ammo")
+    if ammo and ammo:IsA("BasePart") then
+        tp(ammo.CFrame)
+        task.wait(1)
+    end
+
+    return true
 end
 
--- Function to get LMG
+--------------------------------------------------
+-- LMG
+--------------------------------------------------
 function getLMG()
-    local lmg = workspace:FindFirstChild("LMG")
-    if lmg then
-        game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(lmg.PrimaryPart.CFrame)
-        print("Got LMG!")
-        return true
-    else
-        print("LMG not found!")
+    local lmg = find("LMG")
+    if not lmg then
+        warn("LMG not found")
         return false
     end
+
+    if lmg:IsA("BasePart") then
+        tp(lmg.CFrame)
+    elseif lmg:IsA("Model") and lmg.PrimaryPart then
+        tp(lmg.PrimaryPart.CFrame)
+    end
+
+    print("Got LMG")
+    return true
 end
 
--- Function to break bank doors with flame thrower
+--------------------------------------------------
+-- Bank Doors
+--------------------------------------------------
 function breakBankDoors()
-    local bankDoors = workspace:FindFirstChild("Bank Doors")
-    if bankDoors then
-        print("Breaking bank doors...")
-        
-        -- Use flame thrower on bank doors (this will simulate using it)
-        for _, door in pairs(bankDoors:GetChildren()) do
-            if door:IsA("BasePart") then
-                -- Simulate using flame thrower on the door
-                print("Using Flame Thrower on", door.Name)
-                wait(2) -- Animation time
-            end
-        end
-        
-        return true
-    else
-        print("No bank doors found!")
+    local doorsFolder = find("Bank Doors")
+    if not doorsFolder then
+        warn("No bank doors found")
         return false
     end
+
+    for _, door in ipairs(doorsFolder:GetChildren()) do
+        if door:IsA("BasePart") then
+            tp(door.CFrame)
+            task.wait(1.5)
+        end
+    end
+
+    return true
 end
 
--- Function to break little safes (safes that are not the big ones)
+--------------------------------------------------
+-- Small Safes
+--------------------------------------------------
 function breakLittleSafes()
-    local safes = workspace:FindFirstChild("Safes")
-    if safes then
-        for _, safe in pairs(safes:GetChildren()) do
-            if safe:IsA("BasePart") and safe.Name ~= "BigSafe" then -- Assuming there's a big safe
-                print("Breaking little safe:", safe.Name)
-                game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(safe.PrimaryPart.CFrame)
-                wait(1) -- Wait for action to complete
-                
-                -- Simulate breaking the safe with flame thrower
-                print("Using Flame Thrower on", safe.Name)
-                wait(2)
-            end
-        end
-        
-        return true
-    else
-        print("No safes found!")
+    local safes = find("Safes")
+    if not safes then
+        warn("No safes found")
         return false
     end
+
+    for _, safe in ipairs(safes:GetChildren()) do
+        if safe:IsA("BasePart") and not safe.Name:lower():find("big") then
+            tp(safe.CFrame)
+            task.wait(1.5)
+        end
+    end
+
+    return true
 end
 
--- Function to collect money
+--------------------------------------------------
+-- Collect Money
+--------------------------------------------------
 function collectMoney()
-    local money = workspace:FindFirstChild("Money")
-    if money then
-        for _, coin in pairs(money:GetChildren()) do
-            if coin:IsA("BasePart") and coin.Name == "Coin" then
-                print("Collecting", coin.Name)
-                game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(coin.PrimaryPart.CFrame)
-                wait(1)
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v.Name == "Money" or v.Name == "Cash" or v.Name == "Coin" then
+            if v:IsA("BasePart") then
+                tp(v.CFrame)
+                task.wait(0.4)
             end
         end
-        
-        return true
-    else
-        print("No money found!")
-        return false
     end
 end
 
--- Main Robbery Function
+--------------------------------------------------
+-- Main
+--------------------------------------------------
 function runRobbery()
-    print("Starting Da Hood Auto Robbery...")
-    
-    -- Step 1: Get Flame Thrower and Ammo
-    if getFlameThrower() then
-        wait(2)
-        
-        -- Step 2: Get LMG
-        if getLMG() then
-            wait(2)
-            
-            -- Step 3: Break Bank Doors with Flame Thrower
-            breakBankDoors()
-            wait(2)
-            
-            -- Step 4: Break Little Safes
-            breakLittleSafes()
-            wait(2)
-            
-            -- Step 5: Collect Money
-            collectMoney()
-            print("Robbery Complete!")
-        end
-    else
-        print("Failed to get Flame Thrower")
-    end
+    print("Starting Da Hood Auto Robbery")
+
+    if not getFlameThrower() then return end
+    task.wait(1)
+
+    if not getLMG() then return end
+    task.wait(1)
+
+    breakBankDoors()
+    task.wait(1)
+
+    breakLittleSafes()
+    task.wait(1)
+
+    collectMoney()
+    print("Robbery Complete")
 end
 
--- Start the robbery process
-runRobbery()
+task.spawn(runRobbery)
 
--- Additional auto collection feature
-local function autoCollect()
-    local player = game.Players.LocalPlayer
-    
-    while true do
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            -- Check for nearby collectibles or money
-            local char = player.Character
-            local rootPart = char:FindFirstChild("HumanoidRootPart")
-            
-            if rootPart then
-                -- Simple auto collection logic (you can expand this)
-                wait(10) -- Wait before checking again
-            end
-        else
-            wait(2)
-        end
+--------------------------------------------------
+-- Background Auto Collect
+--------------------------------------------------
+task.spawn(function()
+    while task.wait(8) do
+        collectMoney()
     end
-end
+end)
 
--- Start automatic collection in background
-local collectThread = spawn(autoCollect)
-
-print("Da Hood Auto Robbery Script Loaded!")
+print("Da Hood Auto Robbery Script Loaded (Fixed)")
