@@ -1,119 +1,137 @@
--- Da Hood Ultimate - Fixed Version (No GUI)
-local Config = {
-    Aimbot = true,
-    Triggerbot = false,
-    SpeedHack = true,
-    AutoReload = true,
-    AutoPickup = true,
-    ESP = true,
-    Radar = true,
-    AntiAimbot = true,
-    AimKey = Enum.KeyCode.F1,
-    ToggleGUIKey = Enum.KeyCode.F2,
-    SpeedValue = 16,
-    UpdateInterval = 0.05,
-}
-
+-- Da Hood Ultimate - Functional Version
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
-local scriptState = {
-    Aimbot = Config.Aimbot,
+
+local Config = {
+    SpeedHack = true,
+    SpeedValue = 32, -- noticeable speed
+    ESP = true,
+    ESPColor = Color3.new(1, 0, 0),
+    AutoPickup = true,
+    AimKey = Enum.KeyCode.F1,
+    ToggleGUIKey = Enum.KeyCode.F2,
+    UpdateInterval = 0.1
+}
+
+local State = {
     SpeedHack = Config.SpeedHack,
-    AutoReload = Config.AutoReload,
-    AutoPickup = Config.AutoPickup,
     ESP = Config.ESP,
-    Radar = Config.Radar,
-    AntiAimbot = Config.AntiAimbot,
-    SpeedValue = Config.SpeedValue,
+    AutoPickup = Config.AutoPickup,
     GUIVisible = true,
     lastUpdate = 0
 }
 
--- Input Handlers
+-- =========================
+-- Input Handling
+-- =========================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Config.AimKey then
-        scriptState.Aimbot = not scriptState.Aimbot
-        print("Aimbot toggled:", scriptState.Aimbot)
+        State.SpeedHack = not State.SpeedHack
+        print("SpeedHack toggled:", State.SpeedHack)
     elseif input.KeyCode == Config.ToggleGUIKey then
-        scriptState.GUIVisible = not scriptState.GUIVisible
-        print("GUI toggled:", scriptState.GUIVisible)
+        State.GUIVisible = not State.GUIVisible
+        print("ESP visibility toggled:", State.GUIVisible)
+        -- Hide or show ESP
+        for _, gui in pairs(Workspace:GetDescendants()) do
+            if gui:IsA("BillboardGui") and gui.Name == "ESP" then
+                gui.Enabled = State.GUIVisible
+            end
+        end
     end
 end)
 
+-- =========================
 -- Speed Hack
+-- =========================
 local function applySpeedHack()
     local char = player.Character
     if char then
         local humanoid = char:FindFirstChild("Humanoid")
         if humanoid then
-            humanoid.WalkSpeed = scriptState.SpeedValue
+            humanoid.WalkSpeed = State.SpeedHack and Config.SpeedValue or 16
         end
     end
 end
 
--- AutoReload placeholder
-local function applyAutoReload()
-    -- Add your weapon reload logic here
+-- =========================
+-- ESP
+-- =========================
+local ESPs = {}
+
+local function createESP(targetPlayer)
+    if ESPs[targetPlayer] then return end
+    local char = targetPlayer.Character
+    if not char or not char:FindFirstChild("Head") then return end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP"
+    billboard.Adornee = char.Head
+    billboard.Size = UDim2.new(0, 100, 0, 50)
+    billboard.AlwaysOnTop = true
+    billboard.Enabled = State.GUIVisible
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Config.ESPColor
+    textLabel.TextStrokeTransparency = 0
+    textLabel.Text = targetPlayer.Name
+    textLabel.TextScaled = true
+    textLabel.Parent = billboard
+
+    billboard.Parent = Workspace
+    ESPs[targetPlayer] = billboard
 end
 
--- AutoPickup placeholder
-local function applyAutoPickup()
-    -- Add your item pickup logic here
-end
-
--- ESP placeholder
 local function updateESP()
     for _, ply in pairs(Players:GetPlayers()) do
-        if ply ~= player and ply.Character then
-            -- Placeholder: print nearby players
-            print("ESP Check:", ply.Name)
-        end
-    end
-end
-
--- Radar placeholder
-local function updateRadar()
-    for _, ply in pairs(Players:GetPlayers()) do
-        if ply ~= player and ply.Character then
-            local root = ply.Character:FindFirstChild("HumanoidRootPart")
-            if root then
-                print("Radar:", ply.Name, root.Position)
+        if ply ~= player then
+            if ply.Character and ply.Character:FindFirstChild("Head") then
+                createESP(ply)
             end
         end
     end
 end
 
--- AntiAimbot placeholder
-local function updateHumanoidProperties(humanoid)
-    if not humanoid then return end
-    humanoid.JumpPower = math.random(50, 80)
-    humanoid.AutoRotate = true
+-- =========================
+-- Auto Pickup
+-- =========================
+local function applyAutoPickup()
+    local char = player.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for _, item in pairs(Workspace:GetChildren()) do
+        if item:IsA("Model") and (item.Name == "Weapon" or item.Name == "Ammo") then
+            local primary = item:FindFirstChild("PrimaryPart")
+            if primary then
+                local distance = (primary.Position - root.Position).Magnitude
+                if distance < 10 then
+                    print("AutoPickup:", item.Name)
+                    -- Teleport item to player as a placeholder pickup
+                    primary.CFrame = root.CFrame + Vector3.new(0, 3, 0)
+                end
+            end
+        end
+    end
 end
 
+-- =========================
 -- Main Update Loop
+-- =========================
 RunService.Heartbeat:Connect(function()
-    if tick() - scriptState.lastUpdate < Config.UpdateInterval then return end
-    scriptState.lastUpdate = tick()
-    
-    if scriptState.SpeedHack then applySpeedHack() end
-    if scriptState.AutoReload then applyAutoReload() end
-    if scriptState.AutoPickup then applyAutoPickup() end
-    if scriptState.ESP then updateESP() end
-    if scriptState.Radar then updateRadar() end
-    
-    if scriptState.AntiAimbot then
-        local char = player.Character
-        if char then
-            local humanoid = char:FindFirstChild("Humanoid")
-            if humanoid then
-                updateHumanoidProperties(humanoid)
-            end
-        end
-    end
+    if tick() - State.lastUpdate < Config.UpdateInterval then return end
+    State.lastUpdate = tick()
+
+    applySpeedHack()
+    updateESP()
+    if State.AutoPickup then applyAutoPickup() end
 end)
 
-print("Da Hood Ultimate Loaded! F1: Aimbot Toggle, F2: GUI Toggle")
+print("Da Hood Ultimate Loaded! F1: SpeedHack toggle, F2: ESP toggle")
