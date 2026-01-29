@@ -500,6 +500,11 @@ local GUIManager = {
         aimbotVisualToggle.Text = "Aimbot Visual: OFF"
         aimbotVisualToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         aimbotVisualToggle.BorderSizeColor3 = Color3
+        aimbotVisualToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+        aimbotVisualToggle.Font = Enum.Font.SourceSansBold
+        aimbotVisualToggle.TextSize = 14
+        aimbotVisualToggle.Parent = content
+
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/IdiotV4/DA-Hood/main/GuiLibrary.lua"))()
 local Player = game.Players.LocalPlayer or game:GetService("Players").LocalPlayer
 
