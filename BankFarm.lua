@@ -1,28 +1,41 @@
--- Da Hood Auto Robbery Script (FIXED)
--- Safer teleporting, no PrimaryPart crashes, better searching
+-- DA HOOD AUTO ROBBERY — MAX LEVEL CORE
+-- Hardened, loopable, anti-death, expandable
 
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
 
+local player = Players.LocalPlayer
+
+--------------------------------------------------
+-- CHARACTER HANDLING
+--------------------------------------------------
 local function getChar()
-    character = player.Character or player.CharacterAdded:Wait()
-    return character
+    return player.Character or player.CharacterAdded:Wait()
 end
 
 local function getRoot()
     return getChar():WaitForChild("HumanoidRootPart")
 end
 
--- Safe teleport function
-local function tp(cf)
-    local root = getRoot()
-    if root then
-        root.CFrame = cf + Vector3.new(0, 3, 0)
-    end
+local function alive()
+    local hum = getChar():FindFirstChildOfClass("Humanoid")
+    return hum and hum.Health > 0
 end
 
--- Recursive finder
+--------------------------------------------------
+-- SAFE TELEPORT
+--------------------------------------------------
+local function safeTP(cf)
+    if not alive() then return end
+    local root = getRoot()
+    root.Velocity = Vector3.zero
+    root.CFrame = cf + Vector3.new(0, 4, 0)
+end
+
+--------------------------------------------------
+-- DESCENDANT FINDER
+--------------------------------------------------
 local function find(name)
     for _, v in ipairs(workspace:GetDescendants()) do
         if v.Name == name then
@@ -31,138 +44,129 @@ local function find(name)
     end
 end
 
---------------------------------------------------
--- Flame Thrower + Ammo
---------------------------------------------------
-function getFlameThrower()
-    local flamer = find("FlameThrower") or find("Flame Thrower")
-    if not flamer then
-        warn("Flame Thrower not found")
-        return false
-    end
-
-    if flamer:IsA("BasePart") then
-        tp(flamer.CFrame)
-    elseif flamer:IsA("Model") and flamer.PrimaryPart then
-        tp(flamer.PrimaryPart.CFrame)
-    end
-
-    task.wait(1)
-
-    local ammo = find("Ammo")
-    if ammo and ammo:IsA("BasePart") then
-        tp(ammo.CFrame)
-        task.wait(1)
-    end
-
-    return true
-end
-
---------------------------------------------------
--- LMG
---------------------------------------------------
-function getLMG()
-    local lmg = find("LMG")
-    if not lmg then
-        warn("LMG not found")
-        return false
-    end
-
-    if lmg:IsA("BasePart") then
-        tp(lmg.CFrame)
-    elseif lmg:IsA("Model") and lmg.PrimaryPart then
-        tp(lmg.PrimaryPart.CFrame)
-    end
-
-    print("Got LMG")
-    return true
-end
-
---------------------------------------------------
--- Bank Doors
---------------------------------------------------
-function breakBankDoors()
-    local doorsFolder = find("Bank Doors")
-    if not doorsFolder then
-        warn("No bank doors found")
-        return false
-    end
-
-    for _, door in ipairs(doorsFolder:GetChildren()) do
-        if door:IsA("BasePart") then
-            tp(door.CFrame)
-            task.wait(1.5)
+local function findAll(name)
+    local t = {}
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v.Name == name then
+            table.insert(t, v)
         end
     end
-
-    return true
+    return t
 end
 
 --------------------------------------------------
--- Small Safes
+-- TOOL HANDLING
 --------------------------------------------------
-function breakLittleSafes()
-    local safes = find("Safes")
-    if not safes then
-        warn("No safes found")
-        return false
+local function equip(toolName)
+    local char = getChar()
+    local bp = player.Backpack:FindFirstChild(toolName)
+    if bp then
+        bp.Parent = char
+        task.wait(0.2)
+        return true
     end
+end
+
+--------------------------------------------------
+-- AUTO FIRE (REMOTE STUB)
+--------------------------------------------------
+local function fireTool()
+    -- 🔥 YOU PATCH THIS WITH REMOTE CALL
+    -- Example (NOT REAL):
+    -- ReplicatedStorage.MainEvent:FireServer("Fire", target)
+
+    task.wait(0.15)
+end
+
+--------------------------------------------------
+-- FLAMETHROWER + AMMO
+--------------------------------------------------
+local function getFlame()
+    local flamer = find("FlameThrower") or find("Flame Thrower")
+    if not flamer then return end
+
+    if flamer:IsA("BasePart") then
+        safeTP(flamer.CFrame)
+    elseif flamer:IsA("Model") and flamer.PrimaryPart then
+        safeTP(flamer.PrimaryPart.CFrame)
+    end
+
+    task.wait(0.6)
+    equip("FlameThrower")
+end
+
+--------------------------------------------------
+-- BANK DOORS
+--------------------------------------------------
+local function breakDoors()
+    local doors = find("Bank Doors")
+    if not doors then return end
+
+    equip("FlameThrower")
+
+    for _, door in ipairs(doors:GetChildren()) do
+        if door:IsA("BasePart") then
+            safeTP(door.CFrame)
+            fireTool()
+            task.wait(0.8)
+        end
+    end
+end
+
+--------------------------------------------------
+-- SAFES
+--------------------------------------------------
+local function breakSafes()
+    local safes = find("Safes")
+    if not safes then return end
+
+    equip("FlameThrower")
 
     for _, safe in ipairs(safes:GetChildren()) do
         if safe:IsA("BasePart") and not safe.Name:lower():find("big") then
-            tp(safe.CFrame)
-            task.wait(1.5)
-        end
-    end
-
-    return true
-end
-
---------------------------------------------------
--- Collect Money
---------------------------------------------------
-function collectMoney()
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v.Name == "Money" or v.Name == "Cash" or v.Name == "Coin" then
-            if v:IsA("BasePart") then
-                tp(v.CFrame)
-                task.wait(0.4)
-            end
+            safeTP(safe.CFrame)
+            fireTool()
+            task.wait(0.7)
         end
     end
 end
 
 --------------------------------------------------
--- Main
+-- MONEY VACUUM
 --------------------------------------------------
-function runRobbery()
-    print("Starting Da Hood Auto Robbery")
-
-    if not getFlameThrower() then return end
-    task.wait(1)
-
-    if not getLMG() then return end
-    task.wait(1)
-
-    breakBankDoors()
-    task.wait(1)
-
-    breakLittleSafes()
-    task.wait(1)
-
-    collectMoney()
-    print("Robbery Complete")
+local function vacuumMoney()
+    for _, cash in ipairs(findAll("Money")) do
+        if cash:IsA("BasePart") then
+            safeTP(cash.CFrame)
+            task.wait(0.15)
+        end
+    end
 end
 
-task.spawn(runRobbery)
-
 --------------------------------------------------
--- Background Auto Collect
+-- ANTI VOID / RESET
 --------------------------------------------------
-task.spawn(function()
-    while task.wait(8) do
-        collectMoney()
+RunService.Heartbeat:Connect(function()
+    if alive() then
+        local root = getRoot()
+        if root.Position.Y < -20 then
+            root.CFrame = CFrame.new(0, 15, 0)
+        end
     end
 end)
 
-print("Da Hood Auto Robbery Script Loaded (Fixed)")
+--------------------------------------------------
+-- MAIN LOOP
+--------------------------------------------------
+task.spawn(function()
+    while task.wait(3) do
+        if alive() then
+            getFlame()
+            breakDoors()
+            breakSafes()
+            vacuumMoney()
+        end
+    end
+end)
+
+print("🔥 DA HOOD AUTO ROBBERY — MAX CORE LOADED 🔥")
