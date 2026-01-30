@@ -1,14 +1,14 @@
--- NITO | Clean Tabbed UI (Xeno Optimized)
--- UI ONLY — Toggles, Sliders, Dropdowns, Dynamic Tabs
+-- NITO | Clean Tabbed UI (Visual Sliders + Proper Tabs)
+-- UI ONLY
 
 local UIS = game:GetService("UserInputService")
-local RS  = game:GetService("RunService")
+local RS = game:GetService("RunService")
 
 -- ================= CONFIG =================
 local UI = {
     Open = true,
-    Pos = Vector2.new(450, 250),
-    Size = Vector2.new(560, 360),
+    Pos = Vector2.new(450,250),
+    Size = Vector2.new(560,360),
     Accent = Color3.fromRGB(155,115,255),
     Dragging = false,
     CurrentTab = "Main",
@@ -16,7 +16,7 @@ local UI = {
     Sliding = false
 }
 
-local Tabs = { "Main", "Movement", "Visuals", "Misc" }
+local Tabs = {"Main","Movement","Visuals","Misc"}
 
 local State = {
     Aimbot = false,
@@ -30,9 +30,9 @@ local State = {
 
 -- ================= DRAW HELPERS =================
 local Drawings = {}
-local function New(t,p)
+local function New(t,props)
     local o = Drawing.new(t)
-    for k,v in pairs(p) do o[k]=v end
+    for k,v in pairs(props) do o[k] = v end
     table.insert(Drawings,o)
     return o
 end
@@ -44,8 +44,8 @@ local Title = New("Text",{Text="N I T O",Size=24,Center=true,Outline=true,Color=
 
 -- ================= TABS =================
 local TabButtons = {}
-for i,n in ipairs(Tabs) do
-    TabButtons[n] = New("Text",{Text=n,Size=16,Outline=true,Color=Color3.fromRGB(180,180,180)})
+for i,name in ipairs(Tabs) do
+    TabButtons[name] = New("Text",{Text=name,Size=16,Outline=true,Color=Color3.fromRGB(180,180,180)})
 end
 
 -- ================= MAIN CONTROLS =================
@@ -54,60 +54,63 @@ local function CreateLabel(text,size)
 end
 
 local MainControls = {
+    -- Aimbot / Orbit Section
     Aimbot = CreateLabel("Aimbot: OFF",16),
     Orbit = CreateLabel("Orbit: OFF",16),
     OrbitSpeed = CreateLabel("Orbit Speed: 5",14),
     OrbitDistance = CreateLabel("Orbit Distance: 10",14),
     OrbitMode = CreateLabel("Orbit Mode: Random",14),
+    -- Divider
+    Divider = New("Line",{Thickness=2,Color=Color3.fromRGB(80,80,80)}),
+    -- Triggerbot Section
     Triggerbot = CreateLabel("Triggerbot: OFF",16),
-    Keybind = CreateLabel("Toggle Key: F",14),
+    Keybind = CreateLabel("Toggle Key: F",14)
 }
 
--- Helper to check bounds
+-- ================= INPUT =================
 local function inBounds(mouse,pos,size)
     return mouse.X>pos.X and mouse.X<pos.X+size.X and mouse.Y>pos.Y and mouse.Y<pos.Y+size.Y
 end
 
--- ================= INPUT =================
 UIS.InputBegan:Connect(function(input,gp)
     if gp then return end
     local m = UIS:GetMouseLocation()
 
-    -- Binding key
+    -- Key binding
     if UI.Binding then
         State.ToggleKey = input.KeyCode
         UI.Binding = false
         return
     end
 
-    -- Open/close UI
+    -- Open/Close UI
     if input.KeyCode == Enum.KeyCode.Insert then
         UI.Open = not UI.Open
         for _,v in pairs(Drawings) do v.Visible = UI.Open end
     end
 
-    -- Mouse input
+    -- Mouse Click
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         -- Drag
         if inBounds(m,Frame.Position,Vector2.new(Frame.Size.X,30)) then
             UI.Dragging = true
         end
 
-        -- Tabs
+        -- Tab Buttons
         for name,btn in pairs(TabButtons) do
             if inBounds(m,btn.Position,Vector2.new(90,20)) then
                 UI.CurrentTab = name
-                break
             end
         end
 
-        -- Main tab toggles
+        -- Main tab interactions
         if UI.CurrentTab=="Main" then
             local function toggle(lbl,key)
                 if inBounds(m,lbl.Position,Vector2.new(220,18)) then
                     State[key] = not State[key]
                 end
             end
+
             toggle(MainControls.Aimbot,"Aimbot")
             toggle(MainControls.Orbit,"Orbit")
             toggle(MainControls.Triggerbot,"Triggerbot")
@@ -142,13 +145,14 @@ end)
 -- ================= RENDER =================
 RS.RenderStepped:Connect(function()
     if not UI.Open then return end
-    local mousePos = UIS:GetMouseLocation()
+    local mouse = UIS:GetMouseLocation()
 
     -- Drag
     if UI.Dragging then
-        UI.Pos = mousePos - Vector2.new(UI.Size.X/2,15)
+        UI.Pos = mouse - Vector2.new(UI.Size.X/2,15)
     end
 
+    -- Frame / Sidebar / Title
     Frame.Position = UI.Pos
     Sidebar.Position = UI.Pos
     Title.Position = UI.Pos + Vector2.new(65,18)
@@ -160,40 +164,61 @@ RS.RenderStepped:Connect(function()
         btn.Color = (UI.CurrentTab==name) and UI.Accent or Color3.fromRGB(180,180,180)
     end
 
-    -- Clear and render tab content
+    -- Main Tab
     local x,y = UI.Pos.X+160, UI.Pos.Y+70
 
     if UI.CurrentTab=="Main" then
-        -- Toggles
+        -- Aimbot / Orbit Section
         MainControls.Aimbot.Text = "Aimbot: "..(State.Aimbot and "ON" or "OFF")
         MainControls.Aimbot.Position = Vector2.new(x,y); y+=30
+
         MainControls.Orbit.Text = "Orbit: "..(State.Orbit and "ON" or "OFF")
         MainControls.Orbit.Position = Vector2.new(x,y); y+=30
+
+        -- Orbit Speed Slider
+        local speedBarLen = 200
+        MainControls.OrbitSpeed.Position = Vector2.new(x,y)
+        MainControls.OrbitSpeed.Text = "Orbit Speed: "..State.OrbitSpeed
+        local handleX = x + (State.OrbitSpeed-1)/(20-1)*speedBarLen
+        local bg = New("Square",{Filled=true,Color=Color3.fromRGB(50,50,50),Size=Vector2.new(speedBarLen,5),Position=Vector2.new(x,y+20)})
+        local handle = New("Square",{Filled=true,Color=UI.Accent,Size=Vector2.new(10,10),Position=Vector2.new(handleX-5,y+17)})
+        if UI.Sliding=="OrbitSpeed" then
+            local val = math.clamp((mouse.X - x)/speedBarLen,0,1)*(20-1)+1
+            State.OrbitSpeed = math.floor(val*100)/100
+        end
+        y+=40
+
+        -- Orbit Distance Slider
+        MainControls.OrbitDistance.Position = Vector2.new(x,y)
+        MainControls.OrbitDistance.Text = "Orbit Distance: "..State.OrbitDistance
+        local distBarLen = 200
+        local distHandleX = x + (State.OrbitDistance-1)/(50-1)*distBarLen
+        local bg2 = New("Square",{Filled=true,Color=Color3.fromRGB(50,50,50),Size=Vector2.new(distBarLen,5),Position=Vector2.new(x,y+20)})
+        local handle2 = New("Square",{Filled=true,Color=UI.Accent,Size=Vector2.new(10,10),Position=Vector2.new(distHandleX-5,y+17)})
+        if UI.Sliding=="OrbitDistance" then
+            local val = math.clamp((mouse.X - x)/distBarLen,0,1)*(50-1)+1
+            State.OrbitDistance = math.floor(val*100)/100
+        end
+        y+=40
+
+        -- Orbit Mode Dropdown
+        MainControls.OrbitMode.Text = "Orbit Mode: "..State.OrbitMode
+        MainControls.OrbitMode.Position = Vector2.new(x,y); y+=30
+
+        -- Divider
+        MainControls.Divider.From = Vector2.new(x,y)
+        MainControls.Divider.To = Vector2.new(x+240,y); y+=20
+
+        -- Triggerbot Section
         MainControls.Triggerbot.Text = "Triggerbot: "..(State.Triggerbot and "ON" or "OFF")
         MainControls.Triggerbot.Position = Vector2.new(x,y); y+=30
 
-        -- Sliders
-        local function slider(lbl,key,min,max)
-            lbl.Position = Vector2.new(x,y)
-            lbl.Text = lbl.Text:match("^(.-):")..": "..State[key]
-            if UI.Sliding==key then
-                local val = math.clamp((mousePos.X - x)/200,0,1)*(max-min)+min
-                State[key] = math.floor(val*100)/100
-            end
-            y+=25
-        end
-        slider(MainControls.OrbitSpeed,"OrbitSpeed",1,20)
-        slider(MainControls.OrbitDistance,"OrbitDistance",1,50)
-
-        -- Dropdown
-        MainControls.OrbitMode.Text = "Orbit Mode: "..State.OrbitMode
-        MainControls.OrbitMode.Position = Vector2.new(x,y); y+=25
-
         -- Keybind
         MainControls.Keybind.Text = "Toggle Key: "..State.ToggleKey.Name
-        MainControls.Keybind.Position = Vector2.new(x,y); y+=30
+        MainControls.Keybind.Position = Vector2.new(x,y)
+
     else
-        -- For other tabs, just show a placeholder
+        -- Other Tabs: Only show placeholder
         local label = New("Text",{Text=UI.CurrentTab.." Tab Content",Size=16,Outline=true,Color=Color3.fromRGB(220,220,220)})
         label.Position = Vector2.new(x,y)
     end
