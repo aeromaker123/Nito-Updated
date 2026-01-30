@@ -1,259 +1,253 @@
--- Advanced DA Hood Script - Ultimate Cheating Engine
--- Features: Anti-Detection, Auto-Exploit, GUI Optimization, Multi-Threaded
+-- Nito Defense | Elite Menu (UI-Only)
+-- Place as a LocalScript in StarterPlayerScripts
 
-local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
-local gui = Instance.new("ScreenGui")
-local frame = Instance.new("Frame")
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
--- Initialize Core Components
-if not game:IsLoaded() then wait(1) end
+local player = Players.LocalPlayer
 
--- Anti-Cheat Detection System
-local antiCheatSystem = {
-    detectionPoints = 0,
-    lastDetection = tick(),
-    activeModules = {},
-    
-    addDetectionPoint = function(self, point)
-        self.detectionPoints = math.min(self.detectionPoints + point, 100)
-        if self.detectionPoints > 85 then
-            self:triggerAntiDetect()
-        end
-    end,
-    
-    triggerAntiDetect = function(self)
-        -- Simulate anti-detect behavior
-        local chance = math.random(1, 100)
-        if chance <= 30 then
-            print("Detected - Triggering Anti-Detection")
-            game:GetService("StarterPlayer").CharacterAdded:Connect(function(char)
-                wait(0.5)
-                char:SetAttribute("AntiDetect", true)
-            end)
-        else
-            print("No Detection - Proceeding with normal flow")
-        end
-    end
+-- =========================
+-- STATE
+-- =========================
+local State = {
+    DefenseMode = false,
+    AutoCounter = false,
+    AutoEquip = false,
+    AutoBuy = false,
+    AutoStomp = false,
+    SelectedWeapon = "None",
+    GUIVisible = true
 }
 
--- Advanced GUI System
-local function createAdvancedGUI()
-    gui.Name = "DA_Hood_Anti_Cheat_GUI"
-    gui.Parent = game:GetService("CoreGui")
+-- =========================
+-- THEME
+-- =========================
+local Theme = {
+    Bg = Color3.fromRGB(16,16,18),
+    Panel = Color3.fromRGB(22,22,26),
+    Accent = Color3.fromRGB(120, 90, 255),
+    Text = Color3.fromRGB(235,235,235),
+    Muted = Color3.fromRGB(150,150,160),
+    On = Color3.fromRGB(90, 200, 140),
+    Off = Color3.fromRGB(200, 90, 90)
+}
 
-    frame.Size = UDim2.new(0, 350, 0, 200)
-    frame.Position = UDim2.new(0.5, -175, 0.5, -100)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    frame.BorderSizePixel = 0
-    frame.Parent = gui
+-- =========================
+-- GUI ROOT
+-- =========================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NitoDefenseGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
-    local title = Instance.new("TextLabel")
-    title.Text = "DA Hoods Ultimate Anti-Cheat"
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Font = Enum.Font.SourceSansBold
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Parent = frame
+local Main = Instance.new("Frame")
+Main.Size = UDim2.fromOffset(360, 420)
+Main.Position = UDim2.fromScale(0.06, 0.18)
+Main.BackgroundColor3 = Theme.Bg
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+Main.Parent = ScreenGui
 
-    local statusLabel = Instance.new("TextLabel")
-    statusLabel.Text = "Status: Active"
-    statusLabel.Size = UDim2.new(1, 0, 0, 25)
-    statusLabel.Position = UDim2.new(0, 0, 0, 40)
-    statusLabel.BackgroundTransparency = 1
-    statusLabel.Font = Enum.Font.SourceSansRegular
-    statusLabel.TextColor3 = Color3.fromRGB(50, 255, 150)
-    statusLabel.Parent = frame
+local Corner = Instance.new("UICorner", Main)
+Corner.CornerRadius = UDim.new(0, 14)
 
-    local healthBar = Instance.new("Frame")
-    healthBar.Size = UDim2.new(1, 0, 0, 8)
-    healthBar.Position = UDim2.new(0, 0, 0, 70)
-    healthBar.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    healthBar.BorderSizePixel = 0
-    healthBar.Parent = frame
+-- =========================
+-- HEADER
+-- =========================
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1,0,0,54)
+Header.BackgroundColor3 = Theme.Panel
+Header.BorderSizePixel = 0
+Header.Parent = Main
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0,14)
 
-    local healthFill = Instance.new("Frame")
-    healthFill.Size = UDim2.new(1, 0, 1, 0)
-    healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-    healthFill.BorderSizePixel = 0
-    healthFill.Parent = healthBar
+local Title = Instance.new("TextLabel")
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1,-24,1,0)
+Title.Position = UDim2.fromOffset(12,0)
+Title.Text = "Nito  •  Defense"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+Title.TextColor3 = Theme.Text
+Title.TextXAlignment = Left
+Title.Parent = Header
 
-    local infoPanel = Instance.new("Frame")
-    infoPanel.Size = UDim2.new(1, 0, 0, 90)
-    infoPanel.Position = UDim2.new(0, 0, 0, 80)
-    infoPanel.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-    infoPanel.BorderSizePixel = 0
-    infoPanel.Parent = frame
+-- =========================
+-- CONTENT
+-- =========================
+local Content = Instance.new("Frame")
+Content.Position = UDim2.fromOffset(0,64)
+Content.Size = UDim2.new(1,0,1,-74)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
 
-    local infoText = Instance.new("TextLabel")
-    infoText.Text = "Auto-Cheat System v3.7\nAnti-Detection Active\nExploit Optimization"
-    infoText.Size = UDim2.new(1, 0, 1, 0)
-    infoText.BackgroundTransparency = 1
-    infoText.Font = Enum.Font.SourceSans
-    infoText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    infoText.TextWrapped = true
-    infoText.Parent = infoPanel
+local Layout = Instance.new("UIListLayout", Content)
+Layout.Padding = UDim.new(0,10)
 
-    return frame
+local function pad(h)
+    local p = Instance.new("Frame")
+    p.Size = UDim2.new(1,-24,0,h)
+    p.BackgroundTransparency = 1
+    p.Parent = Content
 end
 
--- Create GUI
-local mainGUI = createAdvancedGUI()
-mainGUI.Visible = true
+pad(0)
 
--- Core Cheating Engine
-local cheaterEngine = {
-    isRunning = false,
-    lastActionTime = tick(),
-    
-    -- Auto-Exploit Detection and Optimization
-    autoDetect = function(self)
-        local exploitName = "DA_Hood_Cheats"
-        print("Detected Exploit: " .. exploitName)
-        
-        if game.Players.LocalPlayer.Character then
-            self:optimizeCharacter()
-        end
-        
-        return exploitName
-    end,
-    
-    optimizeCharacter = function(self)
-        local char = player.Character or player.CharacterAdded:Wait()
-        for _, v in pairs(char:GetChildren()) do
-            if v:IsA("Humanoid") then
-                v.MaxHealth = 999999
-                v.Health = 999999
-                break
-            end
-        end
-    end,
-    
-    -- Multi-threaded Actions
-    performActions = function(self)
-        local actions = {
-            {"Teleport", 0.2},
-            {"Auto-Exploit", 0.3},
-            {"Anti-Detection", 0.4}
-        }
-        
-        for _, action in ipairs(actions) do
-            coroutine.resume(coroutine.create(function()
-                wait(action[2])
-                print("Performing: " .. action[1])
-                if action[1] == "Teleport" then
-                    self:autoTeleport()
-                end
-            end))
-        end
-    end,
-    
-    autoTeleport = function(self)
-        local playerChar = game.Workspace:FindFirstChild(player.Name)
-        if playerChar then
-            local pos = Vector3.new(0, 0, 0) -- Replace with actual position
-            
-            for i=1,5 do
-                playerChar:SetAttribute("LastPosition", playerChar:GetPivot().Position)
-                wait()
-            end
-        end
-    end,
-    
-    start = function(self)
-        self.isRunning = true
-        print("Starting DA Hoods Ultimate Cheating Engine")
-        
-        while self.isRunning do
-            coroutine.resume(coroutine.create(function()
-                -- Process actions in parallel
-                self:performActions()
-                
-                -- Update GUI elements
-                updateGUI()
-                
-                wait(0.1) -- Control loop rate
-            end))
-            
-            if tick() - self.lastActionTime > 3 then
-                antiCheatSystem:addDetectionPoint(5)
-                self.lastActionTime = tick()
-            end
-            
-            wait()
-        end
-        
-        print("Cheater Engine Stopped")
-    end,
-    
-    stop = function(self)
-        self.isRunning = false
-        mainGUI.Visible = false
-        print("Cheating Engine Stopped")
-    end
-}
+-- =========================
+-- HELPERS
+-- =========================
+local function makeRow(height)
+    local r = Instance.new("Frame")
+    r.Size = UDim2.new(1,-24,0,height)
+    r.BackgroundColor3 = Theme.Panel
+    r.BorderSizePixel = 0
+    Instance.new("UICorner", r).CornerRadius = UDim.new(0,12)
+    r.Parent = Content
+    return r
+end
 
--- Update GUI with real-time stats
-local function updateGUI()
-    local healthPercent = math.random(85, 100) -- Dynamic values for effect
-    
-    if healthPercent > 95 then
-        mainGUI:FindFirstChild("statusLabel").TextColor3 = Color3.fromRGB(50, 255, 150)
-    elseif healthPercent > 70 then
-        mainGUI:FindFirstChild("statusLabel").TextColor3 = Color3.fromRGB(255, 255, 100)
-    else
-        mainGUI:FindFirstChild("statusLabel").TextColor3 = Color3.fromRGB(255, 100, 100)
+local function toggleRow(text, key)
+    local row = makeRow(52)
+
+    local lbl = Instance.new("TextLabel")
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1,-120,1,0)
+    lbl.Position = UDim2.fromOffset(14,0)
+    lbl.Text = text
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 16
+    lbl.TextColor3 = Theme.Text
+    lbl.TextXAlignment = Left
+    lbl.Parent = row
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.fromOffset(84,30)
+    btn.Position = UDim2.new(1,-98,0.5,-15)
+    btn.BackgroundColor3 = State[key] and Theme.On or Theme.Off
+    btn.BorderSizePixel = 0
+    btn.Text = State[key] and "ON" or "OFF"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+    btn.Parent = row
+
+    btn.MouseButton1Click:Connect(function()
+        State[key] = not State[key]
+        btn.Text = State[key] and "ON" or "OFF"
+        btn.BackgroundColor3 = State[key] and Theme.On or Theme.Off
+        print("[Nito] "..text..":", State[key])
+    end)
+end
+
+local function dropdownRow(labelText, options)
+    local row = makeRow(62)
+
+    local lbl = Instance.new("TextLabel")
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1,-120,1,0)
+    lbl.Position = UDim2.fromOffset(14,0)
+    lbl.Text = labelText
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 16
+    lbl.TextColor3 = Theme.Text
+    lbl.TextXAlignment = Left
+    lbl.Parent = row
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.fromOffset(140,34)
+    btn.Position = UDim2.new(1,-154,0.5,-17)
+    btn.BackgroundColor3 = Theme.Bg
+    btn.BorderSizePixel = 0
+    btn.Text = State.SelectedWeapon
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    btn.TextColor3 = Theme.Text
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+    btn.Parent = row
+
+    local idx = 1
+    btn.MouseButton1Click:Connect(function()
+        idx += 1
+        if idx > #options then idx = 1 end
+        State.SelectedWeapon = options[idx]
+        btn.Text = State.SelectedWeapon
+        print("[Nito] Selected weapon:", State.SelectedWeapon)
+    end)
+end
+
+local function statusRow()
+    local row = makeRow(80)
+
+    local lbl = Instance.new("TextLabel")
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1,-24,1,-12)
+    lbl.Position = UDim2.fromOffset(12,6)
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 14
+    lbl.TextColor3 = Theme.Muted
+    lbl.TextXAlignment = Left
+    lbl.TextYAlignment = Top
+    lbl.TextWrapped = true
+    lbl.Parent = row
+
+    local function refresh()
+        lbl.Text =
+            "Status\n"..
+            "Defense: "..(State.DefenseMode and "ON" or "OFF")..
+            "  |  Weapon: "..State.SelectedWeapon.."\n"..
+            "AutoCounter: "..tostring(State.AutoCounter)..
+            "  AutoEquip: "..tostring(State.AutoEquip)..
+            "  AutoBuy: "..tostring(State.AutoBuy)..
+            "  AutoStomp: "..tostring(State.AutoStomp)
     end
-    
-    local healthBar = mainGUI:FindFirstChild("healthBar")
-    if healthBar then
-        local fill = healthBar:FindFirstChild("Frame")
-        if fill then
-            fill.Size = UDim2.new(UDim.fromNumber(healthPercent/100), 0, 1, 0)
-        end
+
+    refresh()
+    for k,_ in pairs(State) do
+        -- lightweight refresh
+        task.spawn(function()
+            while true do
+                refresh()
+                task.wait(0.4)
+            end
+        end)
+        break
     end
 end
 
--- Advanced Exploit Module
-local exploitModule = {
-    currentExploit = "DA_Hood_Engine",
-    
-    getExploitInfo = function(self)
-        return {
-            name = self.currentExploit,
-            version = "3.7",
-            buildTime = os.date("%Y-%m-%d %H:%M"),
-            compatibility = "Roblox Premium Compatible"
-        }
-    end,
-    
-    activateModules = function(self)
-        -- Enable all modules for maximum performance
-        self.activeModules = {
-            "Anti-Detection Engine",
-            "Auto-Exploit System",
-            "Multi-Threading Optimizer",
-            "Advanced GUI Interface",
-            "Real-Time Analytics"
-        }
-        
-        print("All Modules Activated Successfully")
-    end,
-    
-    getPerformanceStats = function(self)
-        return {
-            memoryUsage = math.random(40, 95) .. "%",
-            cpuUsage = math.random(20, 85) .. "%",
-            exploitStatus = "Optimized"
-        }
+-- =========================
+-- BUILD MENU
+-- =========================
+toggleRow("Defense Mode", "DefenseMode")
+toggleRow("Auto Counter", "AutoCounter")
+toggleRow("Auto Equip Weapon", "AutoEquip")
+toggleRow("Auto Buy Weapon", "AutoBuy")
+toggleRow("Auto Stomp", "AutoStomp")
+
+dropdownRow("Weapon Selector", {
+    "None",
+    "Revolver",
+    "Shotgun",
+    "SMG",
+    "AR",
+    "Knife"
+})
+
+statusRow()
+
+-- =========================
+-- HOTKEYS
+-- =========================
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.F2 then
+        State.GUIVisible = not State.GUIVisible
+        ScreenGui.Enabled = State.GUIVisible
+        print("[Nito] GUI:", State.GUIVisible)
     end
-}
+end)
 
--- Initialize Components
-local expInfo = exploitModule:getExploitInfo()
-print("Exploit Version: ", expInfo.version)
-exploitModule:activateModules()
-
--- Start the engine with enhanced optimization
-cheaterEngine:start()
+print("Nito Defense Menu loaded. F2 toggles GUI.")
