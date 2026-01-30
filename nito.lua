@@ -1,242 +1,82 @@
--- NITO GUI | ScreenGui Version (Xeno Compatible)
-
-local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- ================= CONFIG =================
-local UI = {
-    Open = true,
-    Pos = UDim2.new(0,450,0,250),
-    Size = UDim2.new(0,560,0,360),
-    Accent = Color3.fromRGB(155,115,255),
-    Dragging = false,
-    CurrentTab = "Main",
-    Binding = false,
-    Sliding = false
-}
-
-local Tabs = {"Main","Movement","Visuals","Misc"}
-
-local State = {
-    Aimbot = false,
-    Orbit = false,
-    Triggerbot = false,
-    OrbitSpeed = 5,
-    OrbitDistance = 10,
-    OrbitMode = "Random",
-    ToggleKey = Enum.KeyCode.F
-}
-
--- ================= SCREENGUI =================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NITO_GUI"
-ScreenGui.Parent = PlayerGui
-
--- Main Frame
-local Frame = Instance.new("Frame")
-Frame.Size = UI.Size
-Frame.Position = UI.Pos
-Frame.BackgroundColor3 = Color3.fromRGB(18,18,22)
-Frame.BorderSizePixel = 0
-Frame.Parent = ScreenGui
-
--- Title
-local Title = Instance.new("TextLabel")
-Title.Text = "N I T O"
-Title.Size = UDim2.new(0,100,0,30)
-Title.Position = UDim2.new(0,Frame.Size.X.Offset/2-50,0,10)
-Title.TextColor3 = UI.Accent
-Title.TextScaled = true
-Title.BackgroundTransparency = 1
-Title.Parent = Frame
-
--- Sidebar for tabs
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0,130,1,0)
-Sidebar.Position = UDim2.new(0,0,0,0)
-Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,28)
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = Frame
-
--- Tab Buttons
-local TabButtons = {}
-for i,name in ipairs(Tabs) do
-    local btn = Instance.new("TextButton")
-    btn.Text = name
-    btn.Size = UDim2.new(0,110,0,30)
-    btn.Position = UDim2.new(0,10,0,60+(i-1)*40)
-    btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    btn.TextColor3 = Color3.fromRGB(180,180,180)
-    btn.BorderSizePixel = 0
-    btn.Parent = Sidebar
-    TabButtons[name] = btn
-end
-
--- ================= MAIN TAB ELEMENTS =================
-local MainTab = Instance.new("Frame")
-MainTab.Size = UDim2.new(1, -140, 1, -20)
-MainTab.Position = UDim2.new(0,140,0,10)
-MainTab.BackgroundTransparency = 1
-MainTab.Parent = Frame
-
--- Helper function to create toggles
-local function createToggle(name,posY)
-    local btn = Instance.new("TextButton")
-    btn.Text = name..": OFF"
-    btn.Size = UDim2.new(0,200,0,25)
-    btn.Position = UDim2.new(0,10,0,posY)
-    btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    btn.TextColor3 = Color3.fromRGB(220,220,220)
-    btn.BorderSizePixel = 0
-    btn.Parent = MainTab
-    return btn
-end
-
-local AimbotBtn = createToggle("Aimbot",10)
-local OrbitBtn = createToggle("Orbit",45)
-local TriggerBtn = createToggle("Triggerbot",270)
-
--- Divider
-local Divider = Instance.new("Frame")
-Divider.Size = UDim2.new(0,MainTab.Size.X.Offset-20,0,2)
-Divider.Position = UDim2.new(0,10,0,230)
-Divider.BackgroundColor3 = Color3.fromRGB(80,80,80)
-Divider.BorderSizePixel = 0
-Divider.Parent = MainTab
-
--- Keybind
-local KeybindBtn = Instance.new("TextButton")
-KeybindBtn.Text = "Toggle Key: "..State.ToggleKey.Name
-KeybindBtn.Size = UDim2.new(0,200,0,25)
-KeybindBtn.Position = UDim2.new(0,10,0,305)
-KeybindBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-KeybindBtn.TextColor3 = Color3.fromRGB(220,220,220)
-KeybindBtn.BorderSizePixel = 0
-KeybindBtn.Parent = MainTab
-
--- Orbit Sliders
-local function createSlider(name,posY,min,max)
-    local label = Instance.new("TextLabel")
-    label.Text = name..": "..min
-    label.Size = UDim2.new(0,200,0,20)
-    label.Position = UDim2.new(0,10,0,posY)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(220,220,220)
-    label.Parent = MainTab
-
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(0,200,0,5)
-    bar.Position = UDim2.new(0,10,0,posY+20)
-    bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    bar.Parent = MainTab
-
-    local handle = Instance.new("Frame")
-    handle.Size = UDim2.new(0,10,0,10)
-    handle.Position = UDim2.new(0,0,0,posY+17)
-    handle.BackgroundColor3 = UI.Accent
-    handle.Parent = MainTab
-
-    return {label=label,bar=bar,handle=handle,min=min,max=max,value=min}
-end
-
-local OrbitSpeedSlider = createSlider("Orbit Speed",80,1,20)
-local OrbitDistanceSlider = createSlider("Orbit Distance",125,1,50)
-
--- Dropdown
-local OrbitModeBtn = Instance.new("TextButton")
-OrbitModeBtn.Text = "Orbit Mode: "..State.OrbitMode
-OrbitModeBtn.Size = UDim2.new(0,200,0,25)
-OrbitModeBtn.Position = UDim2.new(0,10,0,170)
-OrbitModeBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-OrbitModeBtn.TextColor3 = Color3.fromRGB(220,220,220)
-OrbitModeBtn.BorderSizePixel = 0
-OrbitModeBtn.Parent = MainTab
-
--- ================= INPUTS =================
--- Tab switching
-for name,btn in pairs(TabButtons) do
-    btn.MouseButton1Click:Connect(function()
-        UI.CurrentTab = name
-        -- Hide all tabs first
-        for _,v in pairs({MainTab}) do
-            v.Visible = false
-        end
-        -- Show only active
-        if name=="Main" then MainTab.Visible = true end
-    end)
-end
-
--- Toggles
-AimbotBtn.MouseButton1Click:Connect(function()
-    State.Aimbot = not State.Aimbot
-    AimbotBtn.Text = "Aimbot: "..(State.Aimbot and "ON" or "OFF")
-end)
-
-OrbitBtn.MouseButton1Click:Connect(function()
-    State.Orbit = not State.Orbit
-    OrbitBtn.Text = "Orbit: "..(State.Orbit and "ON" or "OFF")
-end)
-
-TriggerBtn.MouseButton1Click:Connect(function()
-    State.Triggerbot = not State.Triggerbot
-    TriggerBtn.Text = "Triggerbot: "..(State.Triggerbot and "ON" or "OFF")
-end)
-
-OrbitModeBtn.MouseButton1Click:Connect(function()
-    State.OrbitMode = (State.OrbitMode=="Random") and "Velocity" or "Random"
-    OrbitModeBtn.Text = "Orbit Mode: "..State.OrbitMode
-end)
-
--- Keybind
-KeybindBtn.MouseButton1Click:Connect(function()
-    UI.Binding = true
-    KeybindBtn.Text = "Press a key..."
-end)
-
-UIS.InputBegan:Connect(function(input)
-    if UI.Binding and input.UserInputType == Enum.UserInputType.Keyboard then
-        State.ToggleKey = input.KeyCode
-        KeybindBtn.Text = "Toggle Key: "..State.ToggleKey.Name
-        UI.Binding = false
-    end
-end)
-
--- Slider drag
-local function updateSlider(slider,mouseX)
-    local barX = slider.bar.AbsolutePosition.X
-    local barWidth = slider.bar.AbsoluteSize.X
-    local relative = math.clamp(mouseX - barX,0,barWidth)/barWidth
-    local value = slider.min + (slider.max-slider.min)*relative
-    slider.value = math.floor(value*100)/100
-    slider.label.Text = slider.label.Text:match("^(.-):")..": "..slider.value
-    slider.handle.Position = UDim2.new(0,relative*barWidth-5,0,slider.handle.Position.Y.Offset)
-end
-
-UIS.InputBegan:Connect(function(input)
-    if input.UserInputType==Enum.UserInputType.MouseButton1 then
-        local mouse = UIS:GetMouseLocation()
-        if mouse.X >= OrbitSpeedSlider.bar.AbsolutePosition.X and mouse.X <= OrbitSpeedSlider.bar.AbsolutePosition.X+OrbitSpeedSlider.bar.AbsoluteSize.X
-        and mouse.Y >= OrbitSpeedSlider.bar.AbsolutePosition.Y and mouse.Y <= OrbitSpeedSlider.bar.AbsolutePosition.Y+OrbitSpeedSlider.bar.AbsoluteSize.Y then
-            UI.Sliding = "OrbitSpeed"
-        elseif mouse.X >= OrbitDistanceSlider.bar.AbsolutePosition.X and mouse.X <= OrbitDistanceSlider.bar.AbsolutePosition.X+OrbitDistanceSlider.bar.AbsoluteSize.X
-        and mouse.Y >= OrbitDistanceSlider.bar.AbsolutePosition.Y and mouse.Y <= OrbitDistanceSlider.bar.AbsolutePosition.Y+OrbitDistanceSlider.bar.AbsoluteSize.Y then
-            UI.Sliding = "OrbitDistance"
-        end
-    end
-end)
-
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType==Enum.UserInputType.MouseButton1 then
-        UI.Sliding = false
-    end
-end)
-
+-- Update Main tab visibility based on CurrentTab
 RS.RenderStepped:Connect(function()
-    if UI.Sliding=="OrbitSpeed" then
-        updateSlider(OrbitSpeedSlider, UIS:GetMouseLocation().X)
-    elseif UI.Sliding=="OrbitDistance" then
-        updateSlider(OrbitDistanceSlider, UIS:GetMouseLocation().X)
+    if not UI.Open then return end
+    local mouse = UIS:GetMouseLocation()
+
+    -- Dragging
+    if UI.Dragging then
+        UI.Pos = mouse - Vector2.new(UI.Size.X/2,15)
+    end
+
+    -- Frame / Sidebar / Title
+    Frame.Position = UI.Pos
+    Sidebar.Position = UI.Pos
+    Title.Position = UI.Pos + Vector2.new(65,18)
+
+    -- Tabs
+    for i,name in ipairs(Tabs) do
+        local btn = TabButtons[name]
+        btn.Position = UI.Pos + Vector2.new(20,60+(i-1)*35)
+        btn.Color = (UI.CurrentTab==name) and UI.Accent or Color3.fromRGB(180,180,180)
+    end
+
+    -- Check which tab is active
+    local isMain = UI.CurrentTab=="Main"
+
+    -- Show/hide Main tab drawings
+    for _,v in pairs(MainControls) do
+        if v ~= MainControls.Placeholder then
+            v.Visible = isMain
+        end
+    end
+
+    if isMain then
+        local x,y = UI.Pos.X+160, UI.Pos.Y+70
+
+        -- Update Main tab content
+        MainControls.Aimbot.Position = Vector2.new(x,y)
+        MainControls.Aimbot.Text = "Aimbot: "..(State.Aimbot and "ON" or "OFF"); y+=30
+
+        MainControls.Orbit.Position = Vector2.new(x,y)
+        MainControls.Orbit.Text = "Orbit: "..(State.Orbit and "ON" or "OFF"); y+=30
+
+        MainControls.OrbitSpeedLabel.Position = Vector2.new(x,y)
+        MainControls.OrbitSpeedLabel.Text = "Orbit Speed: "..State.OrbitSpeed
+        MainControls.OrbitSpeedBar.Position = Vector2.new(x,y+20)
+        MainControls.OrbitSpeedHandle.Position = Vector2.new(x + (State.OrbitSpeed-1)/(20-1)*200-5,y+17)
+        if UI.Sliding=="OrbitSpeed" then
+            local val = math.clamp((mouse.X - x)/200,0,1)*(20-1)+1
+            State.OrbitSpeed = math.floor(val*100)/100
+        end
+        y+=40
+
+        MainControls.OrbitDistanceLabel.Position = Vector2.new(x,y)
+        MainControls.OrbitDistanceLabel.Text = "Orbit Distance: "..State.OrbitDistance
+        MainControls.OrbitDistanceBar.Position = Vector2.new(x,y+20)
+        MainControls.OrbitDistanceHandle.Position = Vector2.new(x + (State.OrbitDistance-1)/(50-1)*200-5,y+17)
+        if UI.Sliding=="OrbitDistance" then
+            local val = math.clamp((mouse.X - x)/200,0,1)*(50-1)+1
+            State.OrbitDistance = math.floor(val*100)/100
+        end
+        y+=40
+
+        MainControls.OrbitMode.Position = Vector2.new(x,y)
+        MainControls.OrbitMode.Text = "Orbit Mode: "..State.OrbitMode; y+=30
+
+        MainControls.Divider.From = Vector2.new(x,y)
+        MainControls.Divider.To = Vector2.new(x+240,y); y+=20
+
+        MainControls.Triggerbot.Position = Vector2.new(x,y)
+        MainControls.Triggerbot.Text = "Triggerbot: "..(State.Triggerbot and "ON" or "OFF"); y+=30
+
+        MainControls.Keybind.Position = Vector2.new(x,y)
+        MainControls.Keybind.Text = "Toggle Key: "..State.ToggleKey.Name
+    else
+        -- Other tabs placeholder
+        if not MainControls.Placeholder then
+            MainControls.Placeholder = New("Text",{Text=UI.CurrentTab.." Tab Content",Size=16,Outline=true,Color=Color3.fromRGB(220,220,220)})
+        end
+        MainControls.Placeholder.Position = Vector2.new(UI.Pos.X+160, UI.Pos.Y+70)
+        MainControls.Placeholder.Visible = true
     end
 end)
