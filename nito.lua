@@ -1,118 +1,148 @@
--- NITO | Xeno-Optimized Drawing UI Framework
--- UI ONLY – logic hooks intentionally empty
+-- NITO | Clean Tabbed UI (Xeno Optimized)
+-- UI ONLY — no feature logic
 
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
 
-local Mouse = UserInputService:GetMouseLocation()
-
--- ================= CONFIG =================
+-- ================= SETTINGS =================
 local UI = {
     Open = true,
+    Pos = Vector2.new(450, 250),
+    Size = Vector2.new(520, 320),
+    Accent = Color3.fromRGB(155, 115, 255),
     Dragging = false,
-    Position = Vector2.new(500, 300),
-    Size = Vector2.new(420, 260),
-    Accent = Color3.fromRGB(140, 90, 255)
+    CurrentTab = "Aimbot"
 }
 
-local Toggles = {
-    Defense = false,
-    AutoAction = false,
-    ESP = false
-}
+local Tabs = { "Aimbot", "Movement", "Visuals", "Misc" }
 
--- ================= DRAWINGS =================
-local Frame = Drawing.new("Square")
-Frame.Filled = true
-Frame.Color = Color3.fromRGB(20,20,25)
-Frame.Size = UI.Size
-Frame.Position = UI.Position
-Frame.Transparency = 1
-Frame.Visible = true
+-- ================= DRAW HELPERS =================
+local Drawings = {}
 
-local Title = Drawing.new("Text")
-Title.Text = "N I T O"
-Title.Size = 20
-Title.Center = true
-Title.Outline = true
-Title.Color = UI.Accent
-Title.Position = UI.Position + Vector2.new(UI.Size.X/2, 10)
-Title.Visible = true
-
-local Info = Drawing.new("Text")
-Info.Text = "Xeno Optimized • Drawing UI"
-Info.Size = 13
-Info.Center = true
-Info.Outline = true
-Info.Color = Color3.fromRGB(180,180,180)
-Info.Position = UI.Position + Vector2.new(UI.Size.X/2, 35)
-Info.Visible = true
-
--- Toggle Texts
-local ToggleTexts = {}
-
-local function createToggle(name, offsetY)
-    local t = Drawing.new("Text")
-    t.Text = name .. ": OFF"
-    t.Size = 14
-    t.Outline = true
-    t.Color = Color3.fromRGB(220,220,220)
-    t.Position = UI.Position + Vector2.new(20, offsetY)
-    t.Visible = true
-    ToggleTexts[name] = t
+local function New(type, props)
+    local obj = Drawing.new(type)
+    for i,v in pairs(props) do
+        obj[i] = v
+    end
+    table.insert(Drawings, obj)
+    return obj
 end
 
-createToggle("Defense", 80)
-createToggle("AutoAction", 110)
-createToggle("ESP", 140)
+-- ================= MAIN FRAME =================
+local Frame = New("Square", {
+    Filled = true,
+    Color = Color3.fromRGB(18,18,22),
+    Size = UI.Size,
+    Position = UI.Pos,
+    Visible = true
+})
+
+local Sidebar = New("Square", {
+    Filled = true,
+    Color = Color3.fromRGB(22,22,28),
+    Size = Vector2.new(120, UI.Size.Y),
+    Position = UI.Pos,
+    Visible = true
+})
+
+local Title = New("Text", {
+    Text = "N I T O",
+    Size = 22,
+    Center = true,
+    Outline = true,
+    Color = UI.Accent,
+    Position = UI.Pos + Vector2.new(60, 18),
+    Visible = true
+})
+
+-- ================= TAB BUTTONS =================
+local TabButtons = {}
+
+for i, name in ipairs(Tabs) do
+    local btn = New("Text", {
+        Text = name,
+        Size = 14,
+        Outline = true,
+        Center = false,
+        Color = Color3.fromRGB(190,190,190),
+        Position = UI.Pos + Vector2.new(20, 60 + (i-1)*35),
+        Visible = true
+    })
+    TabButtons[name] = btn
+end
+
+-- ================= CONTENT TITLE =================
+local SectionTitle = New("Text", {
+    Text = UI.CurrentTab,
+    Size = 18,
+    Outline = true,
+    Color = Color3.fromRGB(235,235,235),
+    Position = UI.Pos + Vector2.new(150, 20),
+    Visible = true
+})
 
 -- ================= INPUT =================
-UserInputService.InputBegan:Connect(function(input, gpe)
+UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
 
     if input.KeyCode == Enum.KeyCode.Insert then
         UI.Open = not UI.Open
-        Frame.Visible = UI.Open
-        Title.Visible = UI.Open
-        Info.Visible = UI.Open
-        for _,v in pairs(ToggleTexts) do
+        for _,v in pairs(Drawings) do
             v.Visible = UI.Open
         end
     end
 
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local m = UserInputService:GetMouseLocation()
+        local m = UIS:GetMouseLocation()
+
+        -- Drag top bar
         if m.X > Frame.Position.X and m.X < Frame.Position.X + Frame.Size.X
-        and m.Y > Frame.Position.Y and m.Y < Frame.Position.Y + 40 then
+        and m.Y > Frame.Position.Y and m.Y < Frame.Position.Y + 35 then
             UI.Dragging = true
+        end
+
+        -- Tab clicks
+        for name, btn in pairs(TabButtons) do
+            local pos = btn.Position
+            if m.X > pos.X and m.X < pos.X + 90
+            and m.Y > pos.Y and m.Y < pos.Y + 18 then
+                UI.CurrentTab = name
+            end
         end
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
+UIS.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         UI.Dragging = false
     end
 end)
 
 -- ================= RENDER LOOP =================
-RunService.RenderStepped:Connect(function()
+RS.RenderStepped:Connect(function()
     if not UI.Open then return end
 
     if UI.Dragging then
-        local m = UserInputService:GetMouseLocation()
-        UI.Position = m - Vector2.new(UI.Size.X/2, 20)
+        local m = UIS:GetMouseLocation()
+        UI.Pos = m - Vector2.new(UI.Size.X/2, 15)
     end
 
-    Frame.Position = UI.Position
-    Title.Position = UI.Position + Vector2.new(UI.Size.X/2, 10)
-    Info.Position = UI.Position + Vector2.new(UI.Size.X/2, 35)
+    -- Frame positions
+    Frame.Position = UI.Pos
+    Sidebar.Position = UI.Pos
+    Title.Position = UI.Pos + Vector2.new(60, 18)
+    SectionTitle.Position = UI.Pos + Vector2.new(150, 20)
+    SectionTitle.Text = UI.CurrentTab
 
-    local y = 80
-    for name, text in pairs(ToggleTexts) do
-        text.Position = UI.Position + Vector2.new(20, y)
-        text.Text = name .. ": " .. (Toggles[name] and "ON" or "OFF")
-        text.Color = Toggles[name] and UI.Accent or Color3.fromRGB(200,200,200)
-        y += 30
+    -- Tabs
+    for i, name in ipairs(Tabs) do
+        local btn = TabButtons[name]
+        btn.Position = UI.Pos + Vector2.new(20, 60 + (i-1)*35)
+
+        if UI.CurrentTab == name then
+            btn.Color = UI.Accent
+        else
+            btn.Color = Color3.fromRGB(180,180,180)
+        end
     end
 end)
