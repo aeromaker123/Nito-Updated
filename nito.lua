@@ -1,4 +1,4 @@
--- NITO GUI | Full Xeno-Compatible with Right-Side Options
+-- NITO GUI | Full Xeno-Compatible with Da Hood Guns Dropdown + Search
 
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
@@ -14,6 +14,8 @@ local UI = {
 
 local Tabs = {"Main","Movement","Visuals","Misc"}
 
+local DaHoodGuns = {"Glock","Revolver","AR","AK-47","Shotgun","P90","Drum Gun","Rifle","AUG"}
+
 local State = {
     Aimbot = false,
     Orbit = false,
@@ -24,10 +26,8 @@ local State = {
     ToggleKey = Enum.KeyCode.F,
     ShootShooter = false,
     TP = false,
-    SelectedGun = "Pistol"
+    SelectedGun = "Glock"
 }
-
-local GunOptions = {"Pistol","Shotgun","SMG","Rifle"}
 
 -- ================= SCREENGUI =================
 local ScreenGui = Instance.new("ScreenGui")
@@ -38,8 +38,8 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0,500,0,320)
-Frame.Position = UDim2.new(0.5,-250,0.5,-160)
+Frame.Size = UDim2.new(0,520,0,360)
+Frame.Position = UDim2.new(0.5,-260,0.5,-180)
 Frame.BackgroundColor3 = Color3.fromRGB(18,18,22)
 Frame.BorderSizePixel = 0
 Frame.Parent = ScreenGui
@@ -58,7 +58,7 @@ Title.Parent = Frame
 
 -- Sidebar
 local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0,120,1,0)
+Sidebar.Size = UDim2.new(0,130,1,0)
 Sidebar.Position = UDim2.new(0,0,0,0)
 Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,28)
 Sidebar.BorderSizePixel = 0
@@ -69,7 +69,7 @@ local TabButtons = {}
 for i,name in ipairs(Tabs) do
     local btn = Instance.new("TextButton")
     btn.Text = name
-    btn.Size = UDim2.new(0,100,0,30)
+    btn.Size = UDim2.new(0,110,0,30)
     btn.Position = UDim2.new(0,10,0,60+(i-1)*40)
     btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
     btn.TextColor3 = Color3.fromRGB(180,180,180)
@@ -119,7 +119,7 @@ local TriggerBtn = createToggle("Triggerbot",270,MainTab)
 -- Divider on right side
 local Divider = Instance.new("Frame")
 Divider.Size = UDim2.new(0,2,1,0)
-Divider.Position = UDim2.new(0.75,0,0,50)
+Divider.Position = UDim2.new(0.75,0,0,0)
 Divider.BackgroundColor3 = Color3.fromRGB(155,115,255)
 Divider.BorderSizePixel = 0
 Divider.Parent = MainTab
@@ -130,7 +130,7 @@ ShootBtn.Position = UDim2.new(0.76,0,0,60)
 local TPBtn = createToggle("TP Toggle",100,MainTab)
 TPBtn.Position = UDim2.new(0.76,0,0,100)
 
--- Right-side gun dropdown
+-- Gun dropdown with search
 local GunDropdownBtn = Instance.new("TextButton")
 GunDropdownBtn.Text = "Gun: "..State.SelectedGun
 GunDropdownBtn.Size = UDim2.new(0,150,0,25)
@@ -142,30 +142,54 @@ GunDropdownBtn.Parent = MainTab
 
 local GunDropdownOpen = false
 local GunDropdownFrame = Instance.new("Frame")
-GunDropdownFrame.Size = UDim2.new(0,150,0,#GunOptions*25)
+GunDropdownFrame.Size = UDim2.new(0,150,0,#DaHoodGuns*25+30)
 GunDropdownFrame.Position = UDim2.new(0,0,0,25)
 GunDropdownFrame.BackgroundColor3 = Color3.fromRGB(30,30,35)
 GunDropdownFrame.BorderSizePixel = 0
 GunDropdownFrame.Visible = false
 GunDropdownFrame.Parent = GunDropdownBtn
 
-for i,gun in ipairs(GunOptions) do
-    local option = Instance.new("TextButton")
-    option.Text = gun
-    option.Size = UDim2.new(1,0,0,25)
-    option.Position = UDim2.new(0,0,0,(i-1)*25)
-    option.BackgroundColor3 = Color3.fromRGB(40,40,45)
-    option.TextColor3 = Color3.fromRGB(220,220,220)
-    option.BorderSizePixel = 0
-    option.Parent = GunDropdownFrame
+-- Search bar
+local SearchBox = Instance.new("TextBox")
+SearchBox.PlaceholderText = "Search gun..."
+SearchBox.Size = UDim2.new(1,-10,0,25)
+SearchBox.Position = UDim2.new(0,5,0,0)
+SearchBox.BackgroundColor3 = Color3.fromRGB(40,40,45)
+SearchBox.TextColor3 = Color3.fromRGB(220,220,220)
+SearchBox.BorderSizePixel = 0
+SearchBox.ClearTextOnFocus = false
+SearchBox.Parent = GunDropdownFrame
 
-    option.MouseButton1Click:Connect(function()
-        State.SelectedGun = gun
-        GunDropdownBtn.Text = "Gun: "..gun
-        GunDropdownFrame.Visible = false
-        GunDropdownOpen = false
-    end)
+local function refreshGunList()
+    for i,v in pairs(GunDropdownFrame:GetChildren()) do
+        if v:IsA("TextButton") and v ~= SearchBox then v:Destroy() end
+    end
+    local y = 30
+    local filter = string.lower(SearchBox.Text)
+    for _,gun in ipairs(DaHoodGuns) do
+        if string.find(string.lower(gun),filter) then
+            local option = Instance.new("TextButton")
+            option.Text = gun
+            option.Size = UDim2.new(1,0,0,25)
+            option.Position = UDim2.new(0,0,0,y)
+            option.BackgroundColor3 = Color3.fromRGB(40,40,45)
+            option.TextColor3 = Color3.fromRGB(220,220,220)
+            option.BorderSizePixel = 0
+            option.Parent = GunDropdownFrame
+
+            option.MouseButton1Click:Connect(function()
+                State.SelectedGun = gun
+                GunDropdownBtn.Text = "Gun: "..gun
+                GunDropdownFrame.Visible = false
+                GunDropdownOpen = false
+            end)
+            y = y + 25
+        end
+    end
 end
+
+SearchBox:GetPropertyChangedSignal("Text"):Connect(refreshGunList)
+refreshGunList()
 
 GunDropdownBtn.MouseButton1Click:Connect(function()
     GunDropdownOpen = not GunDropdownOpen
