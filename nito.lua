@@ -1,4 +1,4 @@
--- NITO GUI | CoreGui Xeno-Compatible
+-- NITO GUI | Full Xeno-Compatible Version
 
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
@@ -6,9 +6,6 @@ local RS = game:GetService("RunService")
 -- ================= CONFIG =================
 local UI = {
     Open = true,
-    Pos = UDim2.new(0, 450, 0, 250),
-    Size = UDim2.new(0, 560, 0, 360),
-    Accent = Color3.fromRGB(155,115,255),
     Dragging = false,
     CurrentTab = "Main",
     Binding = false,
@@ -36,8 +33,8 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame
 local Frame = Instance.new("Frame")
-Frame.Size = UI.Size
-Frame.Position = UI.Pos
+Frame.Size = UDim2.new(0,560,0,360)
+Frame.Position = UDim2.new(0,450,0,250)
 Frame.BackgroundColor3 = Color3.fromRGB(18,18,22)
 Frame.BorderSizePixel = 0
 Frame.Parent = ScreenGui
@@ -45,14 +42,14 @@ Frame.Parent = ScreenGui
 -- Title
 local Title = Instance.new("TextLabel")
 Title.Text = "N I T O"
-Title.Size = UDim2.new(0,100,0,30)
-Title.Position = UDim2.new(0.5,-50,0,10)
-Title.TextColor3 = UI.Accent
+Title.Size = UDim2.new(0,200,0,30)
+Title.Position = UDim2.new(0.5,-100,0,10)
+Title.TextColor3 = Color3.fromRGB(155,115,255)
 Title.TextScaled = true
 Title.BackgroundTransparency = 1
 Title.Parent = Frame
 
--- Sidebar
+-- Sidebar for tabs
 local Sidebar = Instance.new("Frame")
 Sidebar.Size = UDim2.new(0,130,1,0)
 Sidebar.Position = UDim2.new(0,0,0,0)
@@ -74,15 +71,26 @@ for i,name in ipairs(Tabs) do
     TabButtons[name] = btn
 end
 
--- ================= MAIN TAB =================
-local MainTab = Instance.new("Frame")
--- Move MainTab down so it doesn't overlap the title
-MainTab.Position = UDim2.new(0, 140, 0, 50) -- was 10, now 50
-MainTab.Size = UDim2.new(1, -140, 1, -60)   -- reduce height so it fits nicely
-MainTab.BackgroundTransparency = 1
-MainTab.Parent = Frame
+-- ================= CREATE TABS =================
+local function CreateTab(name)
+    local tab = Instance.new("Frame")
+    tab.Size = UDim2.new(1,-140,1,-60) -- leaves space for title
+    tab.Position = UDim2.new(0,140,0,50) -- below title
+    tab.BackgroundTransparency = 1
+    tab.Visible = (name=="Main")
+    tab.Name = name.."Tab"
+    tab.Parent = Frame
+    return tab
+end
 
--- Helper to create toggle buttons
+local TabsFrames = {}
+for _,name in ipairs(Tabs) do
+    TabsFrames[name] = CreateTab(name)
+end
+
+local MainTab = TabsFrames["Main"]
+
+-- ================= MAIN TAB ELEMENTS =================
 local function createToggle(text,posY)
     local btn = Instance.new("TextButton")
     btn.Text = text..": OFF"
@@ -117,7 +125,7 @@ KeybindBtn.TextColor3 = Color3.fromRGB(220,220,220)
 KeybindBtn.BorderSizePixel = 0
 KeybindBtn.Parent = MainTab
 
--- Sliders
+-- ================= SLIDERS =================
 local function createSlider(name,posY,min,max)
     local label = Instance.new("TextLabel")
     label.Text = name..": "..min
@@ -136,7 +144,7 @@ local function createSlider(name,posY,min,max)
     local handle = Instance.new("Frame")
     handle.Size = UDim2.new(0,10,0,10)
     handle.Position = UDim2.new(0,0,0,posY+17)
-    handle.BackgroundColor3 = UI.Accent
+    handle.BackgroundColor3 = Color3.fromRGB(155,115,255)
     handle.Parent = MainTab
 
     return {label=label,bar=bar,handle=handle,min=min,max=max,value=min}
@@ -155,13 +163,15 @@ OrbitModeBtn.TextColor3 = Color3.fromRGB(220,220,220)
 OrbitModeBtn.BorderSizePixel = 0
 OrbitModeBtn.Parent = MainTab
 
--- ================= INPUT =================
+-- ================= INPUT LOGIC =================
 -- Tab switching
 for name,btn in pairs(TabButtons) do
     btn.MouseButton1Click:Connect(function()
         UI.CurrentTab = name
-        -- Hide all tabs
-        MainTab.Visible = (name=="Main")
+        for _,tab in pairs(TabsFrames) do
+            tab.Visible = false
+        end
+        TabsFrames[name].Visible = true
     end)
 end
 
@@ -170,12 +180,10 @@ AimbotBtn.MouseButton1Click:Connect(function()
     State.Aimbot = not State.Aimbot
     AimbotBtn.Text = "Aimbot: "..(State.Aimbot and "ON" or "OFF")
 end)
-
 OrbitBtn.MouseButton1Click:Connect(function()
     State.Orbit = not State.Orbit
     OrbitBtn.Text = "Orbit: "..(State.Orbit and "ON" or "OFF")
 end)
-
 TriggerBtn.MouseButton1Click:Connect(function()
     State.Triggerbot = not State.Triggerbot
     TriggerBtn.Text = "Triggerbot: "..(State.Triggerbot and "ON" or "OFF")
@@ -186,7 +194,6 @@ OrbitModeBtn.MouseButton1Click:Connect(function()
     OrbitModeBtn.Text = "Orbit Mode: "..State.OrbitMode
 end)
 
--- Keybind
 KeybindBtn.MouseButton1Click:Connect(function()
     UI.Binding = true
     KeybindBtn.Text = "Press a key..."
@@ -225,7 +232,7 @@ UIS.InputBegan:Connect(function(input)
 end)
 
 UIS.InputEnded:Connect(function(input)
-    if input.UserInputType==Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
         UI.Sliding = false
     end
 end)
@@ -238,3 +245,7 @@ RS.RenderStepped:Connect(function()
         updateSlider(OrbitDistanceSlider,mouse.X)
     end
 end)
+
+-- ================= DRAGGING =================
+Frame.Active = true
+Frame.Draggable = true
