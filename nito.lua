@@ -1,5 +1,5 @@
 -- NITO | Clean Tabbed UI (Xeno Optimized)
--- UI ONLY — no exploit logic
+-- UI ONLY — toggles, sliders, dropdown
 
 local UIS = game:GetService("UserInputService")
 local RS  = game:GetService("RunService")
@@ -12,7 +12,8 @@ local UI = {
     Accent = Color3.fromRGB(155,115,255),
     Dragging = false,
     CurrentTab = "Main",
-    Binding = false
+    Binding = false,
+    Sliding = false,
 }
 
 local Tabs = { "Main", "Movement", "Visuals", "Misc" }
@@ -51,45 +52,47 @@ end
 local Labels = {
     Aimbot = New("Text",{Text="Aimbot: OFF",Size=15,Outline=true}),
     Orbit = New("Text",{Text="Orbit: OFF",Size=15,Outline=true}),
-    Speed = New("Text",{Text="Orbit Speed",Size=14,Outline=true}),
-    Distance = New("Text",{Text="Orbit Distance",Size=14,Outline=true}),
-    Mode = New("Text",{Text="Orbit Mode: Random",Size=14,Outline=true}),
+    Speed = New("Text",{Text="Orbit Speed: "..State.OrbitSpeed,Size=14,Outline=true}),
+    Distance = New("Text",{Text="Orbit Distance: "..State.OrbitDistance,Size=14,Outline=true}),
+    Mode = New("Text",{Text="Orbit Mode: "..State.OrbitMode,Size=14,Outline=true}),
     Divider = New("Line",{Thickness=1,Color=Color3.fromRGB(60,60,60)}),
     Trigger = New("Text",{Text="Triggerbot: OFF",Size=15,Outline=true}),
-    Keybind = New("Text",{Text="Toggle Key: F",Size=14,Outline=true})
+    Keybind = New("Text",{Text="Toggle Key: "..State.ToggleKey.Name,Size=14,Outline=true})
 }
 
 -- ================= INPUT =================
+local function inBounds(m,pos,size)
+    return m.X>pos.X and m.X<pos.X+size.X and m.Y>pos.Y and m.Y<pos.Y+size.Y
+end
+
 UIS.InputBegan:Connect(function(i,gp)
     if gp then return end
+    local m = UIS:GetMouseLocation()
 
+    -- Key binding
     if UI.Binding then
         State.ToggleKey = i.KeyCode
         UI.Binding = false
         return
     end
 
+    -- Open/close UI
     if i.KeyCode == Enum.KeyCode.Insert then
         UI.Open = not UI.Open
         for _,v in pairs(Drawings) do v.Visible = UI.Open end
     end
 
+    -- Drag start
     if i.UserInputType == Enum.UserInputType.MouseButton1 then
-        local m = UIS:GetMouseLocation()
-
-        -- Drag
-        if m.X>Frame.Position.X and m.X<Frame.Position.X+Frame.Size.X
-        and m.Y>Frame.Position.Y and m.Y<Frame.Position.Y+30 then
+        if inBounds(m,Frame.Position,Vector2.new(Frame.Size.X,30)) then
             UI.Dragging=true
         end
 
-        -- Toggles
-        local function click(txt,cb)
-            local p=txt.Position
-            if m.X>p.X and m.X<p.X+220 and m.Y>p.Y and m.Y<p.Y+18 then cb() end
-        end
-
+        -- Toggle clicks
         if UI.CurrentTab=="Main" then
+            local function click(txt,cb)
+                if inBounds(m,txt.Position,Vector2.new(220,18)) then cb() end
+            end
             click(Labels.Aimbot,function() State.Aimbot=not State.Aimbot end)
             click(Labels.Orbit,function() State.Orbit=not State.Orbit end)
             click(Labels.Trigger,function() State.Triggerbot=not State.Triggerbot end)
@@ -97,12 +100,18 @@ UIS.InputBegan:Connect(function(i,gp)
                 State.OrbitMode = (State.OrbitMode=="Random") and "Velocity" or "Random"
             end)
             click(Labels.Keybind,function() UI.Binding=true end)
+
+            -- Sliders start
+            if inBounds(m,Labels.Speed.Position,Vector2.new(200,18)) then
+                UI.Sliding="Speed"
+            elseif inBounds(m,Labels.Distance.Position,Vector2.new(200,18)) then
+                UI.Sliding="Distance"
+            end
         end
 
         -- Tabs
         for n,b in pairs(TabButtons) do
-            local p=b.Position
-            if m.X>p.X and m.X<p.X+90 and m.Y>p.Y and m.Y<p.Y+18 then
+            if inBounds(m,b.Position,Vector2.new(90,18)) then
                 UI.CurrentTab=n
             end
         end
@@ -110,14 +119,21 @@ UIS.InputBegan:Connect(function(i,gp)
 end)
 
 UIS.InputEnded:Connect(function(i)
-    if i.UserInputType==Enum.UserInputType.MouseButton1 then UI.Dragging=false end
+    if i.UserInputType==Enum.UserInputType.MouseButton1 then
+        UI.Dragging=false
+        UI.Sliding=false
+    end
 end)
 
 -- ================= RENDER =================
 RS.RenderStepped:Connect(function()
     if not UI.Open then return end
+
+    local mousePos = UIS:GetMouseLocation()
+
+    -- Dragging
     if UI.Dragging then
-        UI.Pos = UIS:GetMouseLocation()-Vector2.new(UI.Size.X/2,15)
+        UI.Pos = mousePos - Vector2.new(UI.Size.X/2,15)
     end
 
     Frame.Position=UI.Pos
@@ -144,12 +160,23 @@ RS.RenderStepped:Connect(function()
         Labels.Orbit.Text="Orbit: "..(State.Orbit and "ON" or "OFF")
         upd(Labels.Orbit,State.Orbit)
 
-        Labels.Speed.Text="Orbit Speed: "..State.OrbitSpeed
-        Labels.Speed.Position=Vector2.new(x,y) y+=25
+        -- Sliders
+        local function slider(txt,stateKey,min,max)
+            local pos = Vector2.new(x,y)
+            txt.Position=pos
+            txt.Text=txt.Text:match("^(.-):")..": "..State[stateKey]
 
-        Labels.Distance.Text="Orbit Distance: "..State.OrbitDistance
-        Labels.Distance.Position=Vector2.new(x,y) y+=30
+            if UI.Sliding==stateKey then
+                local val = math.clamp((mousePos.X - pos.X)/200,0,1)*(max-min)+min
+                State[stateKey] = math.floor(val*100)/100
+            end
+            y+=25
+        end
 
+        slider(Labels.Speed,"OrbitSpeed",1,20)
+        slider(Labels.Distance,"OrbitDistance",1,50)
+
+        -- Dropdown
         Labels.Mode.Text="Orbit Mode: "..State.OrbitMode
         Labels.Mode.Position=Vector2.new(x,y) y+=25
 
