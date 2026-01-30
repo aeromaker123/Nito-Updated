@@ -1,4 +1,4 @@
--- NITO GUI | Full Xeno-Compatible Version
+-- NITO GUI | Full Xeno-Compatible with Right-Side Options
 
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
@@ -21,8 +21,13 @@ local State = {
     OrbitSpeed = 5,
     OrbitDistance = 10,
     OrbitMode = "Random",
-    ToggleKey = Enum.KeyCode.F
+    ToggleKey = Enum.KeyCode.F,
+    ShootShooter = false,
+    TP = false,
+    SelectedGun = "Pistol"
 }
+
+local GunOptions = {"Pistol","Shotgun","SMG","Rifle"}
 
 -- ================= SCREENGUI =================
 local ScreenGui = Instance.new("ScreenGui")
@@ -33,11 +38,13 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Main Frame
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0,560,0,360)
-Frame.Position = UDim2.new(0,450,0,250)
+Frame.Size = UDim2.new(0,500,0,320)
+Frame.Position = UDim2.new(0.5,-250,0.5,-160)
 Frame.BackgroundColor3 = Color3.fromRGB(18,18,22)
 Frame.BorderSizePixel = 0
 Frame.Parent = ScreenGui
+Frame.Active = true
+Frame.Draggable = true
 
 -- Title
 local Title = Instance.new("TextLabel")
@@ -49,9 +56,9 @@ Title.TextScaled = true
 Title.BackgroundTransparency = 1
 Title.Parent = Frame
 
--- Sidebar for tabs
+-- Sidebar
 local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0,130,1,0)
+Sidebar.Size = UDim2.new(0,120,1,0)
 Sidebar.Position = UDim2.new(0,0,0,0)
 Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,28)
 Sidebar.BorderSizePixel = 0
@@ -62,7 +69,7 @@ local TabButtons = {}
 for i,name in ipairs(Tabs) do
     local btn = Instance.new("TextButton")
     btn.Text = name
-    btn.Size = UDim2.new(0,110,0,30)
+    btn.Size = UDim2.new(0,100,0,30)
     btn.Position = UDim2.new(0,10,0,60+(i-1)*40)
     btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
     btn.TextColor3 = Color3.fromRGB(180,180,180)
@@ -74,8 +81,8 @@ end
 -- ================= CREATE TABS =================
 local function CreateTab(name)
     local tab = Instance.new("Frame")
-    tab.Size = UDim2.new(1,-140,1,-60) -- leaves space for title
-    tab.Position = UDim2.new(0,140,0,50) -- below title
+    tab.Size = UDim2.new(1,-140,1,-60)
+    tab.Position = UDim2.new(0,140,0,50)
     tab.BackgroundTransparency = 1
     tab.Visible = (name=="Main")
     tab.Name = name.."Tab"
@@ -91,7 +98,8 @@ end
 local MainTab = TabsFrames["Main"]
 
 -- ================= MAIN TAB ELEMENTS =================
-local function createToggle(text,posY)
+-- Helper: Toggle Button
+local function createToggle(text,posY,parent)
     local btn = Instance.new("TextButton")
     btn.Text = text..": OFF"
     btn.Size = UDim2.new(0,200,0,25)
@@ -99,21 +107,108 @@ local function createToggle(text,posY)
     btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
     btn.TextColor3 = Color3.fromRGB(220,220,220)
     btn.BorderSizePixel = 0
-    btn.Parent = MainTab
+    btn.Parent = parent
     return btn
 end
 
-local AimbotBtn = createToggle("Aimbot",10)
-local OrbitBtn = createToggle("Orbit",45)
-local TriggerBtn = createToggle("Triggerbot",270)
+-- Left-side toggles
+local AimbotBtn = createToggle("Aimbot",10,MainTab)
+local OrbitBtn = createToggle("Orbit",45,MainTab)
+local TriggerBtn = createToggle("Triggerbot",270,MainTab)
 
--- Divider
+-- Divider on right side
 local Divider = Instance.new("Frame")
-Divider.Size = UDim2.new(0,MainTab.Size.X.Offset-20,0,2)
-Divider.Position = UDim2.new(0,10,0,230)
-Divider.BackgroundColor3 = Color3.fromRGB(80,80,80)
+Divider.Size = UDim2.new(0,2,1,0)
+Divider.Position = UDim2.new(0.75,0,0,50)
+Divider.BackgroundColor3 = Color3.fromRGB(155,115,255)
 Divider.BorderSizePixel = 0
 Divider.Parent = MainTab
+
+-- Right-side toggles
+local ShootBtn = createToggle("Shoot the Shooter",60,MainTab)
+ShootBtn.Position = UDim2.new(0.76,0,0,60)
+local TPBtn = createToggle("TP Toggle",100,MainTab)
+TPBtn.Position = UDim2.new(0.76,0,0,100)
+
+-- Right-side gun dropdown
+local GunDropdownBtn = Instance.new("TextButton")
+GunDropdownBtn.Text = "Gun: "..State.SelectedGun
+GunDropdownBtn.Size = UDim2.new(0,150,0,25)
+GunDropdownBtn.Position = UDim2.new(0.76,0,0,140)
+GunDropdownBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
+GunDropdownBtn.TextColor3 = Color3.fromRGB(220,220,220)
+GunDropdownBtn.BorderSizePixel = 0
+GunDropdownBtn.Parent = MainTab
+
+local GunDropdownOpen = false
+local GunDropdownFrame = Instance.new("Frame")
+GunDropdownFrame.Size = UDim2.new(0,150,0,#GunOptions*25)
+GunDropdownFrame.Position = UDim2.new(0,0,0,25)
+GunDropdownFrame.BackgroundColor3 = Color3.fromRGB(30,30,35)
+GunDropdownFrame.BorderSizePixel = 0
+GunDropdownFrame.Visible = false
+GunDropdownFrame.Parent = GunDropdownBtn
+
+for i,gun in ipairs(GunOptions) do
+    local option = Instance.new("TextButton")
+    option.Text = gun
+    option.Size = UDim2.new(1,0,0,25)
+    option.Position = UDim2.new(0,0,0,(i-1)*25)
+    option.BackgroundColor3 = Color3.fromRGB(40,40,45)
+    option.TextColor3 = Color3.fromRGB(220,220,220)
+    option.BorderSizePixel = 0
+    option.Parent = GunDropdownFrame
+
+    option.MouseButton1Click:Connect(function()
+        State.SelectedGun = gun
+        GunDropdownBtn.Text = "Gun: "..gun
+        GunDropdownFrame.Visible = false
+        GunDropdownOpen = false
+    end)
+end
+
+GunDropdownBtn.MouseButton1Click:Connect(function()
+    GunDropdownOpen = not GunDropdownOpen
+    GunDropdownFrame.Visible = GunDropdownOpen
+end)
+
+-- ================= SLIDERS =================
+local function createSlider(name,posY,min,max,parent)
+    local label = Instance.new("TextLabel")
+    label.Text = name..": "..min
+    label.Size = UDim2.new(0,200,0,20)
+    label.Position = UDim2.new(0,10,0,posY)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(220,220,220)
+    label.Parent = parent
+
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(0,200,0,5)
+    bar.Position = UDim2.new(0,10,0,posY+20)
+    bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    bar.Parent = parent
+
+    local handle = Instance.new("Frame")
+    handle.Size = UDim2.new(0,10,0,10)
+    handle.Position = UDim2.new(0,0,0,posY+17)
+    handle.BackgroundColor3 = Color3.fromRGB(155,115,255)
+    handle.Parent = parent
+
+    return {label=label,bar=bar,handle=handle,min=min,max=max,value=min}
+end
+
+local OrbitSpeedSlider = createSlider("Orbit Speed",80,1,20,MainTab)
+local OrbitDistanceSlider = createSlider("Orbit Distance",125,1,50,MainTab)
+
+-- Orbit Mode dropdown
+local OrbitModeBtn = Instance.new("TextButton")
+OrbitModeBtn.Text = "Orbit Mode: "..State.OrbitMode
+OrbitModeBtn.Size = UDim2.new(0,200,0,25)
+OrbitModeBtn.Position = UDim2.new(0,10,0,170)
+OrbitModeBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
+OrbitModeBtn.TextColor3 = Color3.fromRGB(220,220,220)
+OrbitModeBtn.BorderSizePixel = 0
+OrbitModeBtn.Parent = MainTab
 
 -- Keybind
 local KeybindBtn = Instance.new("TextButton")
@@ -124,44 +219,6 @@ KeybindBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
 KeybindBtn.TextColor3 = Color3.fromRGB(220,220,220)
 KeybindBtn.BorderSizePixel = 0
 KeybindBtn.Parent = MainTab
-
--- ================= SLIDERS =================
-local function createSlider(name,posY,min,max)
-    local label = Instance.new("TextLabel")
-    label.Text = name..": "..min
-    label.Size = UDim2.new(0,200,0,20)
-    label.Position = UDim2.new(0,10,0,posY)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(220,220,220)
-    label.Parent = MainTab
-
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(0,200,0,5)
-    bar.Position = UDim2.new(0,10,0,posY+20)
-    bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    bar.Parent = MainTab
-
-    local handle = Instance.new("Frame")
-    handle.Size = UDim2.new(0,10,0,10)
-    handle.Position = UDim2.new(0,0,0,posY+17)
-    handle.BackgroundColor3 = Color3.fromRGB(155,115,255)
-    handle.Parent = MainTab
-
-    return {label=label,bar=bar,handle=handle,min=min,max=max,value=min}
-end
-
-local OrbitSpeedSlider = createSlider("Orbit Speed",80,1,20)
-local OrbitDistanceSlider = createSlider("Orbit Distance",125,1,50)
-
--- Dropdown
-local OrbitModeBtn = Instance.new("TextButton")
-OrbitModeBtn.Text = "Orbit Mode: "..State.OrbitMode
-OrbitModeBtn.Size = UDim2.new(0,200,0,25)
-OrbitModeBtn.Position = UDim2.new(0,10,0,170)
-OrbitModeBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-OrbitModeBtn.TextColor3 = Color3.fromRGB(220,220,220)
-OrbitModeBtn.BorderSizePixel = 0
-OrbitModeBtn.Parent = MainTab
 
 -- ================= INPUT LOGIC =================
 -- Tab switching
@@ -176,24 +233,26 @@ for name,btn in pairs(TabButtons) do
 end
 
 -- Toggles
-AimbotBtn.MouseButton1Click:Connect(function()
-    State.Aimbot = not State.Aimbot
-    AimbotBtn.Text = "Aimbot: "..(State.Aimbot and "ON" or "OFF")
-end)
-OrbitBtn.MouseButton1Click:Connect(function()
-    State.Orbit = not State.Orbit
-    OrbitBtn.Text = "Orbit: "..(State.Orbit and "ON" or "OFF")
-end)
-TriggerBtn.MouseButton1Click:Connect(function()
-    State.Triggerbot = not State.Triggerbot
-    TriggerBtn.Text = "Triggerbot: "..(State.Triggerbot and "ON" or "OFF")
-end)
+local function setupToggle(btn, stateKey)
+    btn.MouseButton1Click:Connect(function()
+        State[stateKey] = not State[stateKey]
+        btn.Text = btn.Text:match("^(.-):")..": "..(State[stateKey] and "ON" or "OFF")
+    end)
+end
 
+setupToggle(AimbotBtn,"Aimbot")
+setupToggle(OrbitBtn,"Orbit")
+setupToggle(TriggerBtn,"Triggerbot")
+setupToggle(ShootBtn,"ShootShooter")
+setupToggle(TPBtn,"TP")
+
+-- Orbit Mode
 OrbitModeBtn.MouseButton1Click:Connect(function()
     State.OrbitMode = (State.OrbitMode=="Random") and "Velocity" or "Random"
     OrbitModeBtn.Text = "Orbit Mode: "..State.OrbitMode
 end)
 
+-- Keybind
 KeybindBtn.MouseButton1Click:Connect(function()
     UI.Binding = true
     KeybindBtn.Text = "Press a key..."
@@ -245,7 +304,3 @@ RS.RenderStepped:Connect(function()
         updateSlider(OrbitDistanceSlider,mouse.X)
     end
 end)
-
--- ================= DRAGGING =================
-Frame.Active = true
-Frame.Draggable = true
