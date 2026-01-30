@@ -1,4 +1,12 @@
--- Update Main tab visibility based on CurrentTab
+-- Set up a simple table to manage tab contents
+local TabContents = {
+    Main = MainControls,
+    Movement = {},
+    Visuals = {},
+    Misc = {}
+}
+
+-- When rendering, toggle visibility of each tab's drawings
 RS.RenderStepped:Connect(function()
     if not UI.Open then return end
     local mouse = UIS:GetMouseLocation()
@@ -18,28 +26,29 @@ RS.RenderStepped:Connect(function()
         local btn = TabButtons[name]
         btn.Position = UI.Pos + Vector2.new(20,60+(i-1)*35)
         btn.Color = (UI.CurrentTab==name) and UI.Accent or Color3.fromRGB(180,180,180)
+        btn.Visible = true
     end
 
-    -- Check which tab is active
-    local isMain = UI.CurrentTab=="Main"
-
-    -- Show/hide Main tab drawings
-    for _,v in pairs(MainControls) do
-        if v ~= MainControls.Placeholder then
-            v.Visible = isMain
+    -- Update tab visibility
+    for tabName, elements in pairs(TabContents) do
+        local visible = (UI.CurrentTab == tabName)
+        for _, v in pairs(elements) do
+            v.Visible = visible
         end
     end
 
-    if isMain then
+    -- Only update content for active tab
+    if UI.CurrentTab == "Main" then
         local x,y = UI.Pos.X+160, UI.Pos.Y+70
 
-        -- Update Main tab content
+        -- Aimbot / Orbit Toggle
         MainControls.Aimbot.Position = Vector2.new(x,y)
         MainControls.Aimbot.Text = "Aimbot: "..(State.Aimbot and "ON" or "OFF"); y+=30
 
         MainControls.Orbit.Position = Vector2.new(x,y)
         MainControls.Orbit.Text = "Orbit: "..(State.Orbit and "ON" or "OFF"); y+=30
 
+        -- Orbit Speed Slider
         MainControls.OrbitSpeedLabel.Position = Vector2.new(x,y)
         MainControls.OrbitSpeedLabel.Text = "Orbit Speed: "..State.OrbitSpeed
         MainControls.OrbitSpeedBar.Position = Vector2.new(x,y+20)
@@ -50,6 +59,7 @@ RS.RenderStepped:Connect(function()
         end
         y+=40
 
+        -- Orbit Distance Slider
         MainControls.OrbitDistanceLabel.Position = Vector2.new(x,y)
         MainControls.OrbitDistanceLabel.Text = "Orbit Distance: "..State.OrbitDistance
         MainControls.OrbitDistanceBar.Position = Vector2.new(x,y+20)
@@ -60,23 +70,20 @@ RS.RenderStepped:Connect(function()
         end
         y+=40
 
+        -- Orbit Mode Dropdown
         MainControls.OrbitMode.Position = Vector2.new(x,y)
         MainControls.OrbitMode.Text = "Orbit Mode: "..State.OrbitMode; y+=30
 
+        -- Divider
         MainControls.Divider.From = Vector2.new(x,y)
         MainControls.Divider.To = Vector2.new(x+240,y); y+=20
 
+        -- Triggerbot Section
         MainControls.Triggerbot.Position = Vector2.new(x,y)
         MainControls.Triggerbot.Text = "Triggerbot: "..(State.Triggerbot and "ON" or "OFF"); y+=30
 
+        -- Keybind
         MainControls.Keybind.Position = Vector2.new(x,y)
         MainControls.Keybind.Text = "Toggle Key: "..State.ToggleKey.Name
-    else
-        -- Other tabs placeholder
-        if not MainControls.Placeholder then
-            MainControls.Placeholder = New("Text",{Text=UI.CurrentTab.." Tab Content",Size=16,Outline=true,Color=Color3.fromRGB(220,220,220)})
-        end
-        MainControls.Placeholder.Position = Vector2.new(UI.Pos.X+160, UI.Pos.Y+70)
-        MainControls.Placeholder.Visible = true
     end
 end)
