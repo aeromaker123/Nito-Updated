@@ -1,61 +1,92 @@
--- ================= MAIN TAB ELEMENTS =================
--- Helper: Toggle Button
-local function createToggle(text,posY,parent)
-    local btn = Instance.new("TextButton")
-    btn.Text = text..": OFF"
-    btn.Size = UDim2.new(0,200,0,25)
-    btn.Position = UDim2.new(0,10,0,posY)
-    btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    btn.TextColor3 = Color3.fromRGB(220,220,220)
-    btn.BorderSizePixel = 0
-    btn.Parent = parent
-    return btn
+-- MainTab container sizes
+local LeftColumnWidth = 0.45
+local RightColumnWidth = 0.5
+local Padding = 10
+
+-- Clear old children (optional)
+for _,v in pairs(MainTab:GetChildren()) do
+    if v:IsA("Frame") or v:IsA("TextButton") then
+        v:Destroy()
+    end
 end
 
--- Left-side toggles
-local AimbotBtn = createToggle("Aimbot",10,MainTab)
-local OrbitBtn = createToggle("Orbit",45,MainTab)
-local TriggerBtn = createToggle("Triggerbot",80,MainTab)
+-- Left-side container
+local LeftColumn = Instance.new("Frame")
+LeftColumn.Size = UDim2.new(LeftColumnWidth, -Padding, 1, -Padding)
+LeftColumn.Position = UDim2.new(0, Padding, 0, Padding)
+LeftColumn.BackgroundTransparency = 1
+LeftColumn.Parent = MainTab
 
--- Divider on right side
-local Divider = Instance.new("Frame")
-Divider.Size = UDim2.new(0,2,1,0)
-Divider.Position = UDim2.new(0.74,0,0,0)
-Divider.BackgroundColor3 = Color3.fromRGB(155,115,255)
-Divider.BorderSizePixel = 0
-Divider.Parent = MainTab
+-- Right-side container
+local RightColumn = Instance.new("Frame")
+RightColumn.Size = UDim2.new(RightColumnWidth, -Padding, 1, -Padding)
+RightColumn.Position = UDim2.new(LeftColumnWidth, Padding, 0, Padding)
+RightColumn.BackgroundTransparency = 1
+RightColumn.Parent = MainTab
 
--- Right-side toggles and dropdown container
-local RightColumnX = 0.76
-local RightStartY = 10
-local RightSpacing = 40
+-- Left toggles
+local y = 0
+for _,name in ipairs({"Aimbot","Orbit","Triggerbot"}) do
+    local btn = createToggle(name, y, LeftColumn)
+    btn.Position = UDim2.new(0,0,0,y)
+    y = y + 35
+end
 
-local ShootBtn = createToggle("Shoot the Shooter",RightStartY,MainTab)
-ShootBtn.Position = UDim2.new(RightColumnX,0,0,RightStartY)
+-- Sliders inside left column
+local OrbitSpeedSlider = createSlider("Orbit Speed",y,1,20,LeftColumn)
+y = y + 55
+local OrbitDistanceSlider = createSlider("Orbit Distance",y,1,50,LeftColumn)
+y = y + 55
 
-local TPBtn = createToggle("TP Toggle",RightStartY+RightSpacing,MainTab)
-TPBtn.Position = UDim2.new(RightColumnX,0,0,RightStartY+RightSpacing)
+-- Orbit mode dropdown
+local OrbitModeBtn = Instance.new("TextButton")
+OrbitModeBtn.Text = "Orbit Mode: "..State.OrbitMode
+OrbitModeBtn.Size = UDim2.new(1,0,0,25)
+OrbitModeBtn.Position = UDim2.new(0,0,0,y)
+OrbitModeBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
+OrbitModeBtn.TextColor3 = Color3.fromRGB(220,220,220)
+OrbitModeBtn.BorderSizePixel = 0
+OrbitModeBtn.Parent = LeftColumn
+y = y + 35
 
--- Gun dropdown with search
+-- Keybind button
+local KeybindBtn = Instance.new("TextButton")
+KeybindBtn.Text = "Toggle Key: "..State.ToggleKey.Name
+KeybindBtn.Size = UDim2.new(1,0,0,25)
+KeybindBtn.Position = UDim2.new(0,0,0,y)
+KeybindBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
+KeybindBtn.TextColor3 = Color3.fromRGB(220,220,220)
+KeybindBtn.BorderSizePixel = 0
+KeybindBtn.Parent = LeftColumn
+
+-- Right-side toggles
+local ry = 0
+for _,name in ipairs({"Shoot the Shooter","TP Toggle"}) do
+    local btn = createToggle(name, ry, RightColumn)
+    btn.Position = UDim2.new(0,0,0,ry)
+    ry = ry + 35
+end
+
+-- Gun dropdown with search inside right column
 local GunDropdownBtn = Instance.new("TextButton")
 GunDropdownBtn.Text = "Gun: "..State.SelectedGun
-GunDropdownBtn.Size = UDim2.new(0,150,0,25)
-GunDropdownBtn.Position = UDim2.new(RightColumnX,0,0,RightStartY+2*RightSpacing)
+GunDropdownBtn.Size = UDim2.new(1,0,0,25)
+GunDropdownBtn.Position = UDim2.new(0,0,0,ry)
 GunDropdownBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
 GunDropdownBtn.TextColor3 = Color3.fromRGB(220,220,220)
 GunDropdownBtn.BorderSizePixel = 0
-GunDropdownBtn.Parent = MainTab
+GunDropdownBtn.Parent = RightColumn
+ry = ry + 30
 
-local GunDropdownOpen = false
 local GunDropdownFrame = Instance.new("Frame")
-GunDropdownFrame.Size = UDim2.new(0,150,0,#DaHoodGuns*25+30)
+GunDropdownFrame.Size = UDim2.new(1,0,0,#DaHoodGuns*25+30)
 GunDropdownFrame.Position = UDim2.new(0,0,0,25)
 GunDropdownFrame.BackgroundColor3 = Color3.fromRGB(30,30,35)
 GunDropdownFrame.BorderSizePixel = 0
 GunDropdownFrame.Visible = false
 GunDropdownFrame.Parent = GunDropdownBtn
 
--- Search bar
+-- Search box
 local SearchBox = Instance.new("TextBox")
 SearchBox.PlaceholderText = "Search gun..."
 SearchBox.Size = UDim2.new(1,-10,0,25)
@@ -66,7 +97,7 @@ SearchBox.BorderSizePixel = 0
 SearchBox.ClearTextOnFocus = false
 SearchBox.Parent = GunDropdownFrame
 
--- Refresh gun list function
+-- Gun list refresh
 local function refreshGunList()
     for i,v in pairs(GunDropdownFrame:GetChildren()) do
         if v:IsA("TextButton") and v ~= SearchBox then v:Destroy() end
@@ -88,7 +119,6 @@ local function refreshGunList()
                 State.SelectedGun = gun
                 GunDropdownBtn.Text = "Gun: "..gun
                 GunDropdownFrame.Visible = false
-                GunDropdownOpen = false
             end)
             y = y + 25
         end
@@ -99,6 +129,5 @@ SearchBox:GetPropertyChangedSignal("Text"):Connect(refreshGunList)
 refreshGunList()
 
 GunDropdownBtn.MouseButton1Click:Connect(function()
-    GunDropdownOpen = not GunDropdownOpen
-    GunDropdownFrame.Visible = GunDropdownOpen
+    GunDropdownFrame.Visible = not GunDropdownFrame.Visible
 end)
