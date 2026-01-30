@@ -76,8 +76,9 @@ end
 
 -- ================= MAIN TAB =================
 local MainTab = Instance.new("Frame")
-MainTab.Size = UDim2.new(1, -140, 1, -20)
-MainTab.Position = UDim2.new(0,140,0,10)
+-- Move MainTab down so it doesn't overlap the title
+MainTab.Position = UDim2.new(0, 140, 0, 50) -- was 10, now 50
+MainTab.Size = UDim2.new(1, -140, 1, -60)   -- reduce height so it fits nicely
 MainTab.BackgroundTransparency = 1
 MainTab.Parent = Frame
 
