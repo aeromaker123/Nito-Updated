@@ -1,4 +1,4 @@
--- NITO | Clean Tabbed UI (Visual Sliders + Proper Tabs)
+-- NITO | Clean Tabbed UI (Stable, Visual Sliders)
 -- UI ONLY
 
 local UIS = game:GetService("UserInputService")
@@ -53,16 +53,18 @@ local function CreateLabel(text,size)
     return New("Text",{Text=text,Size=size,Outline=true,Color=Color3.fromRGB(220,220,220)})
 end
 
+-- Persistent drawings for Main tab
 local MainControls = {
-    -- Aimbot / Orbit Section
     Aimbot = CreateLabel("Aimbot: OFF",16),
     Orbit = CreateLabel("Orbit: OFF",16),
-    OrbitSpeed = CreateLabel("Orbit Speed: 5",14),
-    OrbitDistance = CreateLabel("Orbit Distance: 10",14),
+    OrbitSpeedLabel = CreateLabel("Orbit Speed: 5",14),
+    OrbitDistanceLabel = CreateLabel("Orbit Distance: 10",14),
+    OrbitSpeedBar = New("Square",{Filled=true,Color=Color3.fromRGB(50,50,50),Size=Vector2.new(200,5)}),
+    OrbitSpeedHandle = New("Square",{Filled=true,Color=UI.Accent,Size=Vector2.new(10,10)}),
+    OrbitDistanceBar = New("Square",{Filled=true,Color=Color3.fromRGB(50,50,50),Size=Vector2.new(200,5)}),
+    OrbitDistanceHandle = New("Square",{Filled=true,Color=UI.Accent,Size=Vector2.new(10,10)}),
     OrbitMode = CreateLabel("Orbit Mode: Random",14),
-    -- Divider
     Divider = New("Line",{Thickness=2,Color=Color3.fromRGB(80,80,80)}),
-    -- Triggerbot Section
     Triggerbot = CreateLabel("Triggerbot: OFF",16),
     Keybind = CreateLabel("Toggle Key: F",14)
 }
@@ -76,41 +78,35 @@ UIS.InputBegan:Connect(function(input,gp)
     if gp then return end
     local m = UIS:GetMouseLocation()
 
-    -- Key binding
     if UI.Binding then
         State.ToggleKey = input.KeyCode
         UI.Binding = false
         return
     end
 
-    -- Open/Close UI
     if input.KeyCode == Enum.KeyCode.Insert then
         UI.Open = not UI.Open
         for _,v in pairs(Drawings) do v.Visible = UI.Open end
     end
 
-    -- Mouse Click
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        -- Drag
         if inBounds(m,Frame.Position,Vector2.new(Frame.Size.X,30)) then
             UI.Dragging = true
         end
 
-        -- Tab Buttons
+        -- Tabs
         for name,btn in pairs(TabButtons) do
             if inBounds(m,btn.Position,Vector2.new(90,20)) then
                 UI.CurrentTab = name
             end
         end
 
-        -- Main tab interactions
         if UI.CurrentTab=="Main" then
             local function toggle(lbl,key)
                 if inBounds(m,lbl.Position,Vector2.new(220,18)) then
                     State[key] = not State[key]
                 end
             end
-
             toggle(MainControls.Aimbot,"Aimbot")
             toggle(MainControls.Orbit,"Orbit")
             toggle(MainControls.Triggerbot,"Triggerbot")
@@ -126,9 +122,9 @@ UIS.InputBegan:Connect(function(input,gp)
             end
 
             -- Sliders
-            if inBounds(m,MainControls.OrbitSpeed.Position,Vector2.new(200,18)) then
+            if inBounds(m,MainControls.OrbitSpeedBar.Position,MainControls.OrbitSpeedBar.Size) then
                 UI.Sliding = "OrbitSpeed"
-            elseif inBounds(m,MainControls.OrbitDistance.Position,Vector2.new(200,18)) then
+            elseif inBounds(m,MainControls.OrbitDistanceBar.Position,MainControls.OrbitDistanceBar.Size) then
                 UI.Sliding = "OrbitDistance"
             end
         end
@@ -147,7 +143,7 @@ RS.RenderStepped:Connect(function()
     if not UI.Open then return end
     local mouse = UIS:GetMouseLocation()
 
-    -- Drag
+    -- Dragging
     if UI.Dragging then
         UI.Pos = mouse - Vector2.new(UI.Size.X/2,15)
     end
@@ -164,11 +160,17 @@ RS.RenderStepped:Connect(function()
         btn.Color = (UI.CurrentTab==name) and UI.Accent or Color3.fromRGB(180,180,180)
     end
 
-    -- Main Tab
+    -- Base coordinates for tab content
     local x,y = UI.Pos.X+160, UI.Pos.Y+70
 
-    if UI.CurrentTab=="Main" then
-        -- Aimbot / Orbit Section
+    -- Hide/show all Main controls based on tab
+    local isMain = UI.CurrentTab=="Main"
+    for k,v in pairs(MainControls) do
+        v.Visible = isMain
+    end
+
+    if isMain then
+        -- Aimbot / Orbit Toggle
         MainControls.Aimbot.Text = "Aimbot: "..(State.Aimbot and "ON" or "OFF")
         MainControls.Aimbot.Position = Vector2.new(x,y); y+=30
 
@@ -176,12 +178,12 @@ RS.RenderStepped:Connect(function()
         MainControls.Orbit.Position = Vector2.new(x,y); y+=30
 
         -- Orbit Speed Slider
-        local speedBarLen = 200
-        MainControls.OrbitSpeed.Position = Vector2.new(x,y)
-        MainControls.OrbitSpeed.Text = "Orbit Speed: "..State.OrbitSpeed
+        MainControls.OrbitSpeedLabel.Position = Vector2.new(x,y)
+        MainControls.OrbitSpeedLabel.Text = "Orbit Speed: "..State.OrbitSpeed
+        MainControls.OrbitSpeedBar.Position = Vector2.new(x,y+20)
+        local speedBarLen = MainControls.OrbitSpeedBar.Size.X
         local handleX = x + (State.OrbitSpeed-1)/(20-1)*speedBarLen
-        local bg = New("Square",{Filled=true,Color=Color3.fromRGB(50,50,50),Size=Vector2.new(speedBarLen,5),Position=Vector2.new(x,y+20)})
-        local handle = New("Square",{Filled=true,Color=UI.Accent,Size=Vector2.new(10,10),Position=Vector2.new(handleX-5,y+17)})
+        MainControls.OrbitSpeedHandle.Position = Vector2.new(handleX-5,y+17)
         if UI.Sliding=="OrbitSpeed" then
             local val = math.clamp((mouse.X - x)/speedBarLen,0,1)*(20-1)+1
             State.OrbitSpeed = math.floor(val*100)/100
@@ -189,12 +191,12 @@ RS.RenderStepped:Connect(function()
         y+=40
 
         -- Orbit Distance Slider
-        MainControls.OrbitDistance.Position = Vector2.new(x,y)
-        MainControls.OrbitDistance.Text = "Orbit Distance: "..State.OrbitDistance
-        local distBarLen = 200
+        MainControls.OrbitDistanceLabel.Position = Vector2.new(x,y)
+        MainControls.OrbitDistanceLabel.Text = "Orbit Distance: "..State.OrbitDistance
+        MainControls.OrbitDistanceBar.Position = Vector2.new(x,y+20)
+        local distBarLen = MainControls.OrbitDistanceBar.Size.X
         local distHandleX = x + (State.OrbitDistance-1)/(50-1)*distBarLen
-        local bg2 = New("Square",{Filled=true,Color=Color3.fromRGB(50,50,50),Size=Vector2.new(distBarLen,5),Position=Vector2.new(x,y+20)})
-        local handle2 = New("Square",{Filled=true,Color=UI.Accent,Size=Vector2.new(10,10),Position=Vector2.new(distHandleX-5,y+17)})
+        MainControls.OrbitDistanceHandle.Position = Vector2.new(distHandleX-5,y+17)
         if UI.Sliding=="OrbitDistance" then
             local val = math.clamp((mouse.X - x)/distBarLen,0,1)*(50-1)+1
             State.OrbitDistance = math.floor(val*100)/100
@@ -216,10 +218,13 @@ RS.RenderStepped:Connect(function()
         -- Keybind
         MainControls.Keybind.Text = "Toggle Key: "..State.ToggleKey.Name
         MainControls.Keybind.Position = Vector2.new(x,y)
-
     else
-        -- Other Tabs: Only show placeholder
-        local label = New("Text",{Text=UI.CurrentTab.." Tab Content",Size=16,Outline=true,Color=Color3.fromRGB(220,220,220)})
-        label.Position = Vector2.new(x,y)
+        -- Placeholder for other tabs
+        -- Only show one label to prevent overlapping
+        if not MainControls.Placeholder then
+            MainControls.Placeholder = New("Text",{Text=UI.CurrentTab.." Tab Content",Size=16,Outline=true,Color=Color3.fromRGB(220,220,220)})
+        end
+        MainControls.Placeholder.Position = Vector2.new(x,y)
+        MainControls.Placeholder.Visible = true
     end
 end)
