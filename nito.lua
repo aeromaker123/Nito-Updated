@@ -1,4 +1,4 @@
--- NITO | Clean Tabbed UI (Stable, Visual Sliders)
+-- NITO | Clean Tabbed UI (Stable, Keybind Fix, Persistent Elements)
 -- UI ONLY
 
 local UIS = game:GetService("UserInputService")
@@ -78,8 +78,11 @@ UIS.InputBegan:Connect(function(input,gp)
     if gp then return end
     local m = UIS:GetMouseLocation()
 
+    -- Key binding
     if UI.Binding then
-        State.ToggleKey = input.KeyCode
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            State.ToggleKey = input.KeyCode
+        end
         UI.Binding = false
         return
     end
@@ -94,39 +97,38 @@ UIS.InputBegan:Connect(function(input,gp)
             UI.Dragging = true
         end
 
-        -- Tabs
+        -- Tab Buttons
         for name,btn in pairs(TabButtons) do
             if inBounds(m,btn.Position,Vector2.new(90,20)) then
                 UI.CurrentTab = name
             end
         end
 
-        if UI.CurrentTab=="Main" then
-            local function toggle(lbl,key)
-                if inBounds(m,lbl.Position,Vector2.new(220,18)) then
-                    State[key] = not State[key]
-                end
+        -- Main tab interactions
+        local function toggle(lbl,key)
+            if inBounds(m,lbl.Position,Vector2.new(220,18)) then
+                State[key] = not State[key]
             end
-            toggle(MainControls.Aimbot,"Aimbot")
-            toggle(MainControls.Orbit,"Orbit")
-            toggle(MainControls.Triggerbot,"Triggerbot")
+        end
+        toggle(MainControls.Aimbot,"Aimbot")
+        toggle(MainControls.Orbit,"Orbit")
+        toggle(MainControls.Triggerbot,"Triggerbot")
 
-            -- Dropdown
-            if inBounds(m,MainControls.OrbitMode.Position,Vector2.new(200,18)) then
-                State.OrbitMode = (State.OrbitMode=="Random") and "Velocity" or "Random"
-            end
+        -- Dropdown
+        if inBounds(m,MainControls.OrbitMode.Position,Vector2.new(200,18)) then
+            State.OrbitMode = (State.OrbitMode=="Random") and "Velocity" or "Random"
+        end
 
-            -- Keybind
-            if inBounds(m,MainControls.Keybind.Position,Vector2.new(200,18)) then
-                UI.Binding = true
-            end
+        -- Keybind
+        if inBounds(m,MainControls.Keybind.Position,Vector2.new(200,18)) then
+            UI.Binding = true
+        end
 
-            -- Sliders
-            if inBounds(m,MainControls.OrbitSpeedBar.Position,MainControls.OrbitSpeedBar.Size) then
-                UI.Sliding = "OrbitSpeed"
-            elseif inBounds(m,MainControls.OrbitDistanceBar.Position,MainControls.OrbitDistanceBar.Size) then
-                UI.Sliding = "OrbitDistance"
-            end
+        -- Sliders
+        if inBounds(m,MainControls.OrbitSpeedBar.Position,MainControls.OrbitSpeedBar.Size) then
+            UI.Sliding = "OrbitSpeed"
+        elseif inBounds(m,MainControls.OrbitDistanceBar.Position,MainControls.OrbitDistanceBar.Size) then
+            UI.Sliding = "OrbitDistance"
         end
     end
 end)
@@ -163,68 +165,63 @@ RS.RenderStepped:Connect(function()
     -- Base coordinates for tab content
     local x,y = UI.Pos.X+160, UI.Pos.Y+70
 
-    -- Hide/show all Main controls based on tab
+    -- Main tab always visible, only update content if active
     local isMain = UI.CurrentTab=="Main"
-    for k,v in pairs(MainControls) do
-        v.Visible = isMain
+
+    -- Update toggles
+    MainControls.Aimbot.Position = Vector2.new(x,y)
+    MainControls.Aimbot.Text = "Aimbot: "..(State.Aimbot and "ON" or "OFF"); y+=30
+
+    MainControls.Orbit.Position = Vector2.new(x,y)
+    MainControls.Orbit.Text = "Orbit: "..(State.Orbit and "ON" or "OFF"); y+=30
+
+    -- Orbit Speed Slider
+    MainControls.OrbitSpeedLabel.Position = Vector2.new(x,y)
+    MainControls.OrbitSpeedLabel.Text = "Orbit Speed: "..State.OrbitSpeed
+    MainControls.OrbitSpeedBar.Position = Vector2.new(x,y+20)
+    local speedBarLen = MainControls.OrbitSpeedBar.Size.X
+    local handleX = x + (State.OrbitSpeed-1)/(20-1)*speedBarLen
+    MainControls.OrbitSpeedHandle.Position = Vector2.new(handleX-5,y+17)
+    if UI.Sliding=="OrbitSpeed" and isMain then
+        local val = math.clamp((mouse.X - x)/speedBarLen,0,1)*(20-1)+1
+        State.OrbitSpeed = math.floor(val*100)/100
     end
+    y+=40
 
-    if isMain then
-        -- Aimbot / Orbit Toggle
-        MainControls.Aimbot.Text = "Aimbot: "..(State.Aimbot and "ON" or "OFF")
-        MainControls.Aimbot.Position = Vector2.new(x,y); y+=30
+    -- Orbit Distance Slider
+    MainControls.OrbitDistanceLabel.Position = Vector2.new(x,y)
+    MainControls.OrbitDistanceLabel.Text = "Orbit Distance: "..State.OrbitDistance
+    MainControls.OrbitDistanceBar.Position = Vector2.new(x,y+20)
+    local distBarLen = MainControls.OrbitDistanceBar.Size.X
+    local distHandleX = x + (State.OrbitDistance-1)/(50-1)*distBarLen
+    MainControls.OrbitDistanceHandle.Position = Vector2.new(distHandleX-5,y+17)
+    if UI.Sliding=="OrbitDistance" and isMain then
+        local val = math.clamp((mouse.X - x)/distBarLen,0,1)*(50-1)+1
+        State.OrbitDistance = math.floor(val*100)/100
+    end
+    y+=40
 
-        MainControls.Orbit.Text = "Orbit: "..(State.Orbit and "ON" or "OFF")
-        MainControls.Orbit.Position = Vector2.new(x,y); y+=30
+    -- Orbit Mode Dropdown
+    MainControls.OrbitMode.Position = Vector2.new(x,y)
+    MainControls.OrbitMode.Text = "Orbit Mode: "..State.OrbitMode; y+=30
 
-        -- Orbit Speed Slider
-        MainControls.OrbitSpeedLabel.Position = Vector2.new(x,y)
-        MainControls.OrbitSpeedLabel.Text = "Orbit Speed: "..State.OrbitSpeed
-        MainControls.OrbitSpeedBar.Position = Vector2.new(x,y+20)
-        local speedBarLen = MainControls.OrbitSpeedBar.Size.X
-        local handleX = x + (State.OrbitSpeed-1)/(20-1)*speedBarLen
-        MainControls.OrbitSpeedHandle.Position = Vector2.new(handleX-5,y+17)
-        if UI.Sliding=="OrbitSpeed" then
-            local val = math.clamp((mouse.X - x)/speedBarLen,0,1)*(20-1)+1
-            State.OrbitSpeed = math.floor(val*100)/100
+    -- Divider
+    MainControls.Divider.From = Vector2.new(x,y)
+    MainControls.Divider.To = Vector2.new(x+240,y); y+=20
+
+    -- Triggerbot Section
+    MainControls.Triggerbot.Position = Vector2.new(x,y)
+    MainControls.Triggerbot.Text = "Triggerbot: "..(State.Triggerbot and "ON" or "OFF"); y+=30
+
+    -- Keybind
+    MainControls.Keybind.Position = Vector2.new(x,y)
+    MainControls.Keybind.Text = "Toggle Key: "..State.ToggleKey.Name
+
+    -- Hide/show other tabs placeholder
+    for k,v in pairs(MainControls) do
+        if not isMain then
+            -- Keep visible but disable interaction
+            v.Visible = true
         end
-        y+=40
-
-        -- Orbit Distance Slider
-        MainControls.OrbitDistanceLabel.Position = Vector2.new(x,y)
-        MainControls.OrbitDistanceLabel.Text = "Orbit Distance: "..State.OrbitDistance
-        MainControls.OrbitDistanceBar.Position = Vector2.new(x,y+20)
-        local distBarLen = MainControls.OrbitDistanceBar.Size.X
-        local distHandleX = x + (State.OrbitDistance-1)/(50-1)*distBarLen
-        MainControls.OrbitDistanceHandle.Position = Vector2.new(distHandleX-5,y+17)
-        if UI.Sliding=="OrbitDistance" then
-            local val = math.clamp((mouse.X - x)/distBarLen,0,1)*(50-1)+1
-            State.OrbitDistance = math.floor(val*100)/100
-        end
-        y+=40
-
-        -- Orbit Mode Dropdown
-        MainControls.OrbitMode.Text = "Orbit Mode: "..State.OrbitMode
-        MainControls.OrbitMode.Position = Vector2.new(x,y); y+=30
-
-        -- Divider
-        MainControls.Divider.From = Vector2.new(x,y)
-        MainControls.Divider.To = Vector2.new(x+240,y); y+=20
-
-        -- Triggerbot Section
-        MainControls.Triggerbot.Text = "Triggerbot: "..(State.Triggerbot and "ON" or "OFF")
-        MainControls.Triggerbot.Position = Vector2.new(x,y); y+=30
-
-        -- Keybind
-        MainControls.Keybind.Text = "Toggle Key: "..State.ToggleKey.Name
-        MainControls.Keybind.Position = Vector2.new(x,y)
-    else
-        -- Placeholder for other tabs
-        -- Only show one label to prevent overlapping
-        if not MainControls.Placeholder then
-            MainControls.Placeholder = New("Text",{Text=UI.CurrentTab.." Tab Content",Size=16,Outline=true,Color=Color3.fromRGB(220,220,220)})
-        end
-        MainControls.Placeholder.Position = Vector2.new(x,y)
-        MainControls.Placeholder.Visible = true
     end
 end)
