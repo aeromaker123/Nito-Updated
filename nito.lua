@@ -1,330 +1,235 @@
--- NITO GUI | Full Xeno-Compatible with Da Hood Guns Dropdown + Search
+-- NITO GUI | FIXED SCROLL + UNLOAD | Xeno Safe
 
 local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
 
 -- ================= CONFIG =================
-local UI = {
-    Open = true,
-    Dragging = false,
-    CurrentTab = "Main",
-    Binding = false,
-    Sliding = false
-}
-
 local Tabs = {"Main","Movement","Visuals","Misc"}
 
-local DaHoodGuns = {"Glock","Revolver","AR","AK-47","Shotgun","P90","Drum Gun","Rifle","AUG"}
+local DaHoodGuns = {
+    "Glock","Revolver","AR","AK-47","Shotgun","P90",
+    "Drum Gun","Rifle","AUG","SMG","Double Barrel"
+}
 
 local State = {
     Aimbot = false,
     Orbit = false,
     Triggerbot = false,
+    ShootShooter = false,
+    TP = false,
     OrbitSpeed = 5,
     OrbitDistance = 10,
     OrbitMode = "Random",
-    ToggleKey = Enum.KeyCode.F,
-    ShootShooter = false,
-    TP = false,
-    SelectedGun = "Glock"
+    SelectedGun = "Glock",
+    ToggleKey = Enum.KeyCode.F
 }
 
--- ================= SCREENGUI =================
+-- ================= GUI ROOT =================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NITO_GUI"
-ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
+ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game:GetService("CoreGui")
 
--- Main Frame
+-- ================= MAIN FRAME =================
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0,520,0,360)
-Frame.Position = UDim2.new(0.5,-260,0.5,-180)
+Frame.Size = UDim2.new(0,560,0,380)
+Frame.Position = UDim2.new(0.5,-280,0.5,-190)
 Frame.BackgroundColor3 = Color3.fromRGB(18,18,22)
 Frame.BorderSizePixel = 0
-Frame.Parent = ScreenGui
 Frame.Active = true
 Frame.Draggable = true
+Frame.Parent = ScreenGui
 
--- Title
+-- ================= TITLE =================
 local Title = Instance.new("TextLabel")
 Title.Text = "N I T O"
-Title.Size = UDim2.new(0,200,0,30)
-Title.Position = UDim2.new(0.5,-100,0,10)
-Title.TextColor3 = Color3.fromRGB(155,115,255)
+Title.Size = UDim2.new(1,0,0,40)
+Title.Position = UDim2.new(0,0,0,5)
 Title.TextScaled = true
+Title.TextColor3 = Color3.fromRGB(155,115,255)
 Title.BackgroundTransparency = 1
 Title.Parent = Frame
 
--- Sidebar
+-- ================= SIDEBAR =================
 local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0,130,1,0)
-Sidebar.Position = UDim2.new(0,0,0,0)
+Sidebar.Size = UDim2.new(0,130,1,-50)
+Sidebar.Position = UDim2.new(0,0,0,50)
 Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,28)
 Sidebar.BorderSizePixel = 0
 Sidebar.Parent = Frame
 
--- Tab Buttons
 local TabButtons = {}
 for i,name in ipairs(Tabs) do
     local btn = Instance.new("TextButton")
     btn.Text = name
-    btn.Size = UDim2.new(0,110,0,30)
-    btn.Position = UDim2.new(0,10,0,60+(i-1)*40)
+    btn.Size = UDim2.new(1,-20,0,32)
+    btn.Position = UDim2.new(0,10,0,10+(i-1)*40)
     btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    btn.TextColor3 = Color3.fromRGB(180,180,180)
+    btn.TextColor3 = Color3.fromRGB(200,200,200)
     btn.BorderSizePixel = 0
     btn.Parent = Sidebar
     TabButtons[name] = btn
 end
 
--- ================= CREATE TABS =================
+-- ================= TAB CREATOR =================
+local TabsFrames = {}
+
 local function CreateTab(name)
-    local tab = Instance.new("Frame")
-    tab.Size = UDim2.new(1,-140,1,-60)
-    tab.Position = UDim2.new(0,140,0,50)
+    local tab = Instance.new("ScrollingFrame")
+    tab.Size = UDim2.new(1,-150,1,-60)
+    tab.Position = UDim2.new(0,140,0,55)
+    tab.CanvasSize = UDim2.new(0,0,0,0)
+    tab.ScrollBarThickness = 6
+    tab.AutomaticCanvasSize = Enum.AutomaticSize.Y
     tab.BackgroundTransparency = 1
-    tab.Visible = (name=="Main")
-    tab.Name = name.."Tab"
+    tab.Visible = (name == "Main")
     tab.Parent = Frame
+
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0,12)
+    layout.Parent = tab
+
     return tab
 end
 
-local TabsFrames = {}
 for _,name in ipairs(Tabs) do
     TabsFrames[name] = CreateTab(name)
 end
 
-local MainTab = TabsFrames["Main"]
+local MainTab = TabsFrames.Main
+local MiscTab = TabsFrames.Misc
 
--- ================= MAIN TAB ELEMENTS =================
--- Helper: Toggle Button
-local function createToggle(text,posY,parent)
+-- ================= HELPERS =================
+local function Toggle(parent,text,callback)
     local btn = Instance.new("TextButton")
-    btn.Text = text..": OFF"
-    btn.Size = UDim2.new(0,200,0,25)
-    btn.Position = UDim2.new(0,10,0,posY)
+    btn.Size = UDim2.new(0,240,0,28)
     btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    btn.TextColor3 = Color3.fromRGB(220,220,220)
+    btn.TextColor3 = Color3.fromRGB(230,230,230)
     btn.BorderSizePixel = 0
+    btn.Text = text..": OFF"
     btn.Parent = parent
+
+    btn.MouseButton1Click:Connect(function()
+        local new = callback()
+        btn.Text = text..": "..(new and "ON" or "OFF")
+    end)
+
     return btn
 end
 
--- Left-side toggles
-local AimbotBtn = createToggle("Aimbot",10,MainTab)
-local OrbitBtn = createToggle("Orbit",45,MainTab)
-local TriggerBtn = createToggle("Triggerbot",270,MainTab)
+local function Divider(parent)
+    local d = Instance.new("Frame")
+    d.Size = UDim2.new(1,-20,0,2)
+    d.BackgroundColor3 = Color3.fromRGB(155,115,255)
+    d.BorderSizePixel = 0
+    d.Parent = parent
+end
 
--- Divider on right side
-local Divider = Instance.new("Frame")
-Divider.Size = UDim2.new(0,2,1,0)
-Divider.Position = UDim2.new(0.75,0,0,0)
-Divider.BackgroundColor3 = Color3.fromRGB(155,115,255)
-Divider.BorderSizePixel = 0
-Divider.Parent = MainTab
+-- ================= MAIN TAB =================
+Toggle(MainTab,"Aimbot",function()
+    State.Aimbot = not State.Aimbot
+    return State.Aimbot
+end)
 
--- Right-side toggles
-local ShootBtn = createToggle("Shoot the Shooter",60,MainTab)
-ShootBtn.Position = UDim2.new(0.76,0,0,60)
-local TPBtn = createToggle("TP Toggle",100,MainTab)
-TPBtn.Position = UDim2.new(0.76,0,0,100)
+Toggle(MainTab,"Orbit",function()
+    State.Orbit = not State.Orbit
+    return State.Orbit
+end)
 
--- Gun dropdown with search
-local GunDropdownBtn = Instance.new("TextButton")
-GunDropdownBtn.Text = "Gun: "..State.SelectedGun
-GunDropdownBtn.Size = UDim2.new(0,150,0,25)
-GunDropdownBtn.Position = UDim2.new(0.76,0,0,140)
-GunDropdownBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-GunDropdownBtn.TextColor3 = Color3.fromRGB(220,220,220)
-GunDropdownBtn.BorderSizePixel = 0
-GunDropdownBtn.Parent = MainTab
+Toggle(MainTab,"Triggerbot",function()
+    State.Triggerbot = not State.Triggerbot
+    return State.Triggerbot
+end)
 
-local GunDropdownOpen = false
-local GunDropdownFrame = Instance.new("Frame")
-GunDropdownFrame.Size = UDim2.new(0,150,0,#DaHoodGuns*25+30)
-GunDropdownFrame.Position = UDim2.new(0,0,0,25)
-GunDropdownFrame.BackgroundColor3 = Color3.fromRGB(30,30,35)
-GunDropdownFrame.BorderSizePixel = 0
-GunDropdownFrame.Visible = false
-GunDropdownFrame.Parent = GunDropdownBtn
+Divider(MainTab)
 
--- Search bar
-local SearchBox = Instance.new("TextBox")
-SearchBox.PlaceholderText = "Search gun..."
-SearchBox.Size = UDim2.new(1,-10,0,25)
-SearchBox.Position = UDim2.new(0,5,0,0)
-SearchBox.BackgroundColor3 = Color3.fromRGB(40,40,45)
-SearchBox.TextColor3 = Color3.fromRGB(220,220,220)
-SearchBox.BorderSizePixel = 0
-SearchBox.ClearTextOnFocus = false
-SearchBox.Parent = GunDropdownFrame
+Toggle(MainTab,"Shoot the Shooter",function()
+    State.ShootShooter = not State.ShootShooter
+    return State.ShootShooter
+end)
 
-local function refreshGunList()
-    for i,v in pairs(GunDropdownFrame:GetChildren()) do
-        if v:IsA("TextButton") and v ~= SearchBox then v:Destroy() end
+Toggle(MainTab,"TP Toggle",function()
+    State.TP = not State.TP
+    return State.TP
+end)
+
+-- ================= GUN DROPDOWN =================
+local GunBtn = Instance.new("TextButton")
+GunBtn.Size = UDim2.new(0,240,0,28)
+GunBtn.Text = "Gun: "..State.SelectedGun
+GunBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
+GunBtn.TextColor3 = Color3.fromRGB(230,230,230)
+GunBtn.BorderSizePixel = 0
+GunBtn.Parent = MainTab
+
+local GunList = Instance.new("Frame")
+GunList.Size = UDim2.new(0,240,0,160)
+GunList.BackgroundColor3 = Color3.fromRGB(30,30,35)
+GunList.Visible = false
+GunList.Parent = GunBtn
+
+local Search = Instance.new("TextBox")
+Search.PlaceholderText = "Search..."
+Search.Size = UDim2.new(1,-10,0,26)
+Search.Position = UDim2.new(0,5,0,5)
+Search.BackgroundColor3 = Color3.fromRGB(45,45,50)
+Search.TextColor3 = Color3.fromRGB(230,230,230)
+Search.BorderSizePixel = 0
+Search.Parent = GunList
+
+local function RefreshGuns()
+    for _,c in pairs(GunList:GetChildren()) do
+        if c:IsA("TextButton") then c:Destroy() end
     end
-    local y = 30
-    local filter = string.lower(SearchBox.Text)
-    for _,gun in ipairs(DaHoodGuns) do
-        if string.find(string.lower(gun),filter) then
-            local option = Instance.new("TextButton")
-            option.Text = gun
-            option.Size = UDim2.new(1,0,0,25)
-            option.Position = UDim2.new(0,0,0,y)
-            option.BackgroundColor3 = Color3.fromRGB(40,40,45)
-            option.TextColor3 = Color3.fromRGB(220,220,220)
-            option.BorderSizePixel = 0
-            option.Parent = GunDropdownFrame
 
-            option.MouseButton1Click:Connect(function()
+    local y = 36
+    for _,gun in ipairs(DaHoodGuns) do
+        if gun:lower():find(Search.Text:lower()) then
+            local b = Instance.new("TextButton")
+            b.Text = gun
+            b.Size = UDim2.new(1,0,0,24)
+            b.Position = UDim2.new(0,0,0,y)
+            b.BackgroundColor3 = Color3.fromRGB(40,40,45)
+            b.TextColor3 = Color3.fromRGB(230,230,230)
+            b.BorderSizePixel = 0
+            b.Parent = GunList
+
+            b.MouseButton1Click:Connect(function()
                 State.SelectedGun = gun
-                GunDropdownBtn.Text = "Gun: "..gun
-                GunDropdownFrame.Visible = false
-                GunDropdownOpen = false
+                GunBtn.Text = "Gun: "..gun
+                GunList.Visible = false
             end)
-            y = y + 25
+
+            y += 24
         end
     end
 end
 
-SearchBox:GetPropertyChangedSignal("Text"):Connect(refreshGunList)
-refreshGunList()
-
-GunDropdownBtn.MouseButton1Click:Connect(function()
-    GunDropdownOpen = not GunDropdownOpen
-    GunDropdownFrame.Visible = GunDropdownOpen
+Search:GetPropertyChangedSignal("Text"):Connect(RefreshGuns)
+GunBtn.MouseButton1Click:Connect(function()
+    GunList.Visible = not GunList.Visible
+    RefreshGuns()
 end)
 
--- ================= SLIDERS =================
-local function createSlider(name,posY,min,max,parent)
-    local label = Instance.new("TextLabel")
-    label.Text = name..": "..min
-    label.Size = UDim2.new(0,200,0,20)
-    label.Position = UDim2.new(0,10,0,posY)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(220,220,220)
-    label.Parent = parent
+-- ================= MISC TAB =================
+local Unload = Instance.new("TextButton")
+Unload.Size = UDim2.new(0,240,0,32)
+Unload.Text = "UNLOAD SCRIPT"
+Unload.BackgroundColor3 = Color3.fromRGB(80,30,30)
+Unload.TextColor3 = Color3.fromRGB(255,255,255)
+Unload.BorderSizePixel = 0
+Unload.Parent = MiscTab
 
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(0,200,0,5)
-    bar.Position = UDim2.new(0,10,0,posY+20)
-    bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    bar.Parent = parent
+Unload.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
 
-    local handle = Instance.new("Frame")
-    handle.Size = UDim2.new(0,10,0,10)
-    handle.Position = UDim2.new(0,0,0,posY+17)
-    handle.BackgroundColor3 = Color3.fromRGB(155,115,255)
-    handle.Parent = parent
-
-    return {label=label,bar=bar,handle=handle,min=min,max=max,value=min}
-end
-
-local OrbitSpeedSlider = createSlider("Orbit Speed",80,1,20,MainTab)
-local OrbitDistanceSlider = createSlider("Orbit Distance",125,1,50,MainTab)
-
--- Orbit Mode dropdown
-local OrbitModeBtn = Instance.new("TextButton")
-OrbitModeBtn.Text = "Orbit Mode: "..State.OrbitMode
-OrbitModeBtn.Size = UDim2.new(0,200,0,25)
-OrbitModeBtn.Position = UDim2.new(0,10,0,170)
-OrbitModeBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-OrbitModeBtn.TextColor3 = Color3.fromRGB(220,220,220)
-OrbitModeBtn.BorderSizePixel = 0
-OrbitModeBtn.Parent = MainTab
-
--- Keybind
-local KeybindBtn = Instance.new("TextButton")
-KeybindBtn.Text = "Toggle Key: "..State.ToggleKey.Name
-KeybindBtn.Size = UDim2.new(0,200,0,25)
-KeybindBtn.Position = UDim2.new(0,10,0,305)
-KeybindBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-KeybindBtn.TextColor3 = Color3.fromRGB(220,220,220)
-KeybindBtn.BorderSizePixel = 0
-KeybindBtn.Parent = MainTab
-
--- ================= INPUT LOGIC =================
--- Tab switching
+-- ================= TAB SWITCH =================
 for name,btn in pairs(TabButtons) do
     btn.MouseButton1Click:Connect(function()
-        UI.CurrentTab = name
         for _,tab in pairs(TabsFrames) do
             tab.Visible = false
         end
         TabsFrames[name].Visible = true
     end)
 end
-
--- Toggles
-local function setupToggle(btn, stateKey)
-    btn.MouseButton1Click:Connect(function()
-        State[stateKey] = not State[stateKey]
-        btn.Text = btn.Text:match("^(.-):")..": "..(State[stateKey] and "ON" or "OFF")
-    end)
-end
-
-setupToggle(AimbotBtn,"Aimbot")
-setupToggle(OrbitBtn,"Orbit")
-setupToggle(TriggerBtn,"Triggerbot")
-setupToggle(ShootBtn,"ShootShooter")
-setupToggle(TPBtn,"TP")
-
--- Orbit Mode
-OrbitModeBtn.MouseButton1Click:Connect(function()
-    State.OrbitMode = (State.OrbitMode=="Random") and "Velocity" or "Random"
-    OrbitModeBtn.Text = "Orbit Mode: "..State.OrbitMode
-end)
-
--- Keybind
-KeybindBtn.MouseButton1Click:Connect(function()
-    UI.Binding = true
-    KeybindBtn.Text = "Press a key..."
-end)
-
-UIS.InputBegan:Connect(function(input)
-    if UI.Binding and input.UserInputType == Enum.UserInputType.Keyboard then
-        State.ToggleKey = input.KeyCode
-        KeybindBtn.Text = "Toggle Key: "..State.ToggleKey.Name
-        UI.Binding = false
-    end
-end)
-
--- Slider dragging
-local function updateSlider(slider,mouseX)
-    local barX = slider.bar.AbsolutePosition.X
-    local barWidth = slider.bar.AbsoluteSize.X
-    local relative = math.clamp(mouseX - barX,0,barWidth)/barWidth
-    local value = slider.min + (slider.max-slider.min)*relative
-    slider.value = math.floor(value*100)/100
-    slider.label.Text = slider.label.Text:match("^(.-):")..": "..slider.value
-    slider.handle.Position = UDim2.new(0,relative*barWidth-5,0,slider.handle.Position.Y.Offset)
-end
-
-UIS.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local mouse = UIS:GetMouseLocation()
-        if mouse.X >= OrbitSpeedSlider.bar.AbsolutePosition.X and mouse.X <= OrbitSpeedSlider.bar.AbsolutePosition.X+OrbitSpeedSlider.bar.AbsoluteSize.X
-        and mouse.Y >= OrbitSpeedSlider.bar.AbsolutePosition.Y and mouse.Y <= OrbitSpeedSlider.bar.AbsolutePosition.Y+OrbitSpeedSlider.bar.AbsoluteSize.Y then
-            UI.Sliding = "OrbitSpeed"
-        elseif mouse.X >= OrbitDistanceSlider.bar.AbsolutePosition.X and mouse.X <= OrbitDistanceSlider.bar.AbsolutePosition.X+OrbitDistanceSlider.bar.AbsoluteSize.X
-        and mouse.Y >= OrbitDistanceSlider.bar.AbsolutePosition.Y and mouse.Y <= OrbitDistanceSlider.bar.AbsolutePosition.Y+OrbitDistanceSlider.bar.AbsoluteSize.Y then
-            UI.Sliding = "OrbitDistance"
-        end
-    end
-end)
-
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        UI.Sliding = false
-    end
-end)
-
-RS.RenderStepped:Connect(function()
-    local mouse = UIS:GetMouseLocation()
-    if UI.Sliding=="OrbitSpeed" then
-        updateSlider(OrbitSpeedSlider,mouse.X)
-    elseif UI.Sliding=="OrbitDistance" then
-        updateSlider(OrbitDistanceSlider,mouse.X)
-    end
-end)
