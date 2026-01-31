@@ -1,160 +1,265 @@
--- NITO GUI | PLAYERGUI SAFE | GUARANTEED RENDER
+-- NITO | FULL DRAWING UI | XENO SAFE | WITH UNLOAD
 
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local RS  = game:GetService("RunService")
 
--- ===== WAIT FOR PLAYERGUI =====
-local PlayerGui = LP:WaitForChild("PlayerGui")
+-- ================= CONFIG =================
+local UI = {
+    Open = true,
+    Pos = Vector2.new(400, 220),
+    Size = Vector2.new(620, 420),
+    Accent = Color3.fromRGB(155,115,255),
+    Dragging = false,
+    Tab = "Main"
+}
 
--- ===== CLEAN OLD =====
-pcall(function()
-    PlayerGui:FindFirstChild("NITO_GUI"):Destroy()
+local State = {
+    Aimbot = false,
+    Orbit = false,
+    OrbitSpeed = 10,
+    OrbitDistance = 15,
+    OrbitMode = "Random",
+    Triggerbot = false,
+    ShootShooter = false,
+    TP = false,
+    Gun = "Glock"
+}
+
+local Guns = {
+    "Glock","Revolver","Shotgun","Double-Barrel","SMG","Silencer",
+    "Drum Gun","AR","AK-47","AUG","Rifle","LMG","Tactical Shotgun"
+}
+
+-- ================= DRAWING + CONNECTION HELPERS =================
+local Drawings = {}
+local Connections = {}
+
+local function D(type, props)
+    local o = Drawing.new(type)
+    for k,v in pairs(props) do o[k] = v end
+    table.insert(Drawings, o)
+    return o
+end
+
+local function Connect(sig, fn)
+    local c = sig:Connect(fn)
+    table.insert(Connections, c)
+    return c
+end
+
+local function Unload()
+    UI.Open = false
+
+    for _,c in ipairs(Connections) do
+        pcall(function() c:Disconnect() end)
+    end
+    for _,d in ipairs(Drawings) do
+        pcall(function() d:Remove() end)
+    end
+
+    table.clear(Connections)
+    table.clear(Drawings)
+end
+
+-- ================= FRAME =================
+local Frame = D("Square",{
+    Filled = true,
+    Color = Color3.fromRGB(18,18,22),
+    Size = UI.Size,
+    Position = UI.Pos
+})
+
+local Sidebar = D("Square",{
+    Filled = true,
+    Color = Color3.fromRGB(22,22,28),
+    Size = Vector2.new(140, UI.Size.Y),
+    Position = UI.Pos
+})
+
+local Title = D("Text",{
+    Text = "N I T O",
+    Size = 24,
+    Center = true,
+    Outline = true,
+    Color = UI.Accent
+})
+
+-- ================= TABS =================
+local Tabs = {"Main","Movement","Visuals","Misc"}
+local TabText = {}
+
+for i,t in ipairs(Tabs) do
+    TabText[t] = D("Text",{
+        Text = t,
+        Size = 15,
+        Outline = true,
+        Color = Color3.fromRGB(180,180,180)
+    })
+end
+
+-- ================= LABELS =================
+local Labels = {}
+local function Label()
+    return D("Text",{Size=15,Outline=true})
+end
+
+Labels.Aimbot = Label()
+Labels.Orbit = Label()
+Labels.Trigger = Label()
+Labels.Shoot = Label()
+Labels.TP = Label()
+
+local SpeedLabel = D("Text",{Size=14,Outline=true})
+local DistLabel  = D("Text",{Size=14,Outline=true})
+local ModeLabel  = D("Text",{Size=14,Outline=true})
+local GunLabel   = D("Text",{Size=14,Outline=true})
+
+local Divider = D("Line",{Thickness=2,Color=UI.Accent})
+
+-- Misc
+local UnloadLabel = D("Text",{
+    Text = "Unload Script",
+    Size = 16,
+    Outline = true,
+    Color = Color3.fromRGB(255,80,80)
+})
+
+-- ================= INPUT =================
+Connect(UIS.InputBegan,function(i,gp)
+    if gp or not UI.Open then return end
+    local m = UIS:GetMouseLocation()
+
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        -- Drag
+        if m.X>Frame.Position.X and m.X<Frame.Position.X+Frame.Size.X
+        and m.Y>Frame.Position.Y and m.Y<Frame.Position.Y+30 then
+            UI.Dragging = true
+        end
+
+        -- Tabs
+        for t,b in pairs(TabText) do
+            local p=b.Position
+            if m.X>p.X and m.X<p.X+90 and m.Y>p.Y and m.Y<p.Y+18 then
+                UI.Tab = t
+            end
+        end
+
+        local function click(txt,cb)
+            local p=txt.Position
+            if txt.Visible and m.X>p.X and m.X<p.X+260 and m.Y>p.Y and m.Y<p.Y+18 then
+                cb()
+            end
+        end
+
+        if UI.Tab=="Main" then
+            click(Labels.Aimbot,function() State.Aimbot=not State.Aimbot end)
+            click(Labels.Orbit,function() State.Orbit=not State.Orbit end)
+            click(Labels.Trigger,function() State.Triggerbot=not State.Triggerbot end)
+            click(Labels.Shoot,function() State.ShootShooter=not State.ShootShooter end)
+            click(Labels.TP,function() State.TP=not State.TP end)
+            click(ModeLabel,function()
+                State.OrbitMode = State.OrbitMode=="Random" and "Velocity" or "Random"
+            end)
+        elseif UI.Tab=="Misc" then
+            click(UnloadLabel,Unload)
+        end
+    end
 end)
 
--- ===== SCREEN GUI =====
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NITO_GUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = PlayerGui
+Connect(UIS.InputEnded,function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 then
+        UI.Dragging=false
+    end
+end)
 
--- ===== MAIN FRAME =====
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 640, 0, 440)
-Main.Position = UDim2.new(0.5, -320, 0.5, -220)
-Main.BackgroundColor3 = Color3.fromRGB(18,18,22)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
-Main.Parent = ScreenGui
+-- ================= RENDER =================
+Connect(RS.RenderStepped,function()
+    if not UI.Open then return end
 
--- ===== TITLE BAR =====
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1,0,0,40)
-TitleBar.BackgroundColor3 = Color3.fromRGB(22,22,28)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = Main
+    if UI.Dragging then
+        UI.Pos = UIS:GetMouseLocation() - Vector2.new(UI.Size.X/2,15)
+    end
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,0,1,0)
-Title.BackgroundTransparency = 1
-Title.Text = "N I T O"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 26
-Title.TextColor3 = Color3.fromRGB(155,115,255)
-Title.Parent = TitleBar
+    Frame.Position = UI.Pos
+    Sidebar.Position = UI.Pos
+    Title.Position = UI.Pos + Vector2.new(UI.Size.X/2,18)
 
--- ===== SIDEBAR =====
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0,140,1,-40)
-Sidebar.Position = UDim2.new(0,0,0,40)
-Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,28)
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = Main
+    for i,t in ipairs(Tabs) do
+        local b = TabText[t]
+        b.Position = UI.Pos + Vector2.new(20,60+(i-1)*34)
+        b.Color = (UI.Tab==t) and UI.Accent or Color3.fromRGB(180,180,180)
+        b.Visible = true
+    end
 
-local SideLayout = Instance.new("UIListLayout", Sidebar)
-SideLayout.Padding = UDim.new(0,10)
-SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    -- Hide all
+    for _,v in pairs(Labels) do v.Visible=false end
+    SpeedLabel.Visible=false
+    DistLabel.Visible=false
+    ModeLabel.Visible=false
+    GunLabel.Visible=false
+    Divider.Visible=false
+    UnloadLabel.Visible=false
 
-local Pad = Instance.new("UIPadding", Sidebar)
-Pad.PaddingTop = UDim.new(0,12)
+    if UI.Tab=="Main" then
+        local x = UI.Pos.X + 160
+        local y = UI.Pos.Y + 70
 
--- ===== CONTENT =====
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1,-150,1,-50)
-Content.Position = UDim2.new(0,150,0,50)
-Content.BackgroundTransparency = 1
-Content.Parent = Main
-
--- ===== TABS =====
-local Tabs = {"Main","Movement","Visuals","Misc"}
-local TabFrames = {}
-local CurrentTab
-
-local function NewTab(name)
-    local sf = Instance.new("ScrollingFrame")
-    sf.Size = UDim2.new(1,0,1,0)
-    sf.CanvasSize = UDim2.new()
-    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    sf.ScrollBarImageTransparency = 0.4
-    sf.Visible = false
-    sf.BackgroundTransparency = 1
-    sf.Parent = Content
-
-    local layout = Instance.new("UIListLayout", sf)
-    layout.Padding = UDim.new(0,12)
-
-    TabFrames[name] = sf
-end
-
-for _,t in ipairs(Tabs) do
-    NewTab(t)
-end
-
--- ===== TAB BUTTONS =====
-for _,name in ipairs(Tabs) do
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0,120,0,32)
-    b.Text = name
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 14
-    b.TextColor3 = Color3.fromRGB(230,230,230)
-    b.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    b.BorderSizePixel = 0
-    b.Parent = Sidebar
-
-    b.MouseButton1Click:Connect(function()
-        if CurrentTab then
-            TabFrames[CurrentTab].Visible = false
+        local function row(lbl,text,on)
+            lbl.Text = text
+            lbl.Position = Vector2.new(x,y)
+            lbl.Color = on and UI.Accent or Color3.fromRGB(220,220,220)
+            lbl.Visible=true
+            y+=28
         end
-        CurrentTab = name
-        TabFrames[name].Visible = true
-    end)
-end
 
--- ===== ELEMENT HELPERS =====
-local function Button(parent,text)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0,260,0,34)
-    b.Text = text
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 14
-    b.TextColor3 = Color3.fromRGB(235,235,235)
-    b.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    b.BorderSizePixel = 0
-    b.Parent = parent
-end
+        row(Labels.Aimbot,"Aimbot: "..(State.Aimbot and "ON" or "OFF"),State.Aimbot)
+        row(Labels.Orbit,"Orbit: "..(State.Orbit and "ON" or "OFF"),State.Orbit)
 
-local function Divider(parent)
-    local d = Instance.new("Frame")
-    d.Size = UDim2.new(0,260,0,2)
-    d.BackgroundColor3 = Color3.fromRGB(155,115,255)
-    d.BorderSizePixel = 0
-    d.Parent = parent
-end
+        SpeedLabel.Text="Orbit Speed: "..State.OrbitSpeed
+        SpeedLabel.Position=Vector2.new(x,y)
+        SpeedLabel.Visible=true
+        y+=24
 
--- ===== MAIN TAB CONTENT =====
-local MainTab = TabFrames.Main
-Button(MainTab,"Aimbot")
-Button(MainTab,"Orbit")
-Button(MainTab,"Orbit Speed")
-Button(MainTab,"Orbit Distance")
-Button(MainTab,"Orbit Mode")
+        DistLabel.Text="Orbit Distance: "..State.OrbitDistance
+        DistLabel.Position=Vector2.new(x,y)
+        DistLabel.Visible=true
+        y+=24
 
-Divider(MainTab)
+        ModeLabel.Text="Orbit Mode: "..State.OrbitMode
+        ModeLabel.Position=Vector2.new(x,y)
+        ModeLabel.Visible=true
+        y+=28
 
-Button(MainTab,"Triggerbot")
+        Divider.From=Vector2.new(x,y)
+        Divider.To=Vector2.new(x+260,y)
+        Divider.Visible=true
+        y+=18
 
-Divider(MainTab)
+        row(Labels.Trigger,"Triggerbot: "..(State.Triggerbot and "ON" or "OFF"),State.Triggerbot)
 
-Button(MainTab,"Shoot the Shooter")
-Button(MainTab,"TP Toggle")
-Button(MainTab,"Select Gun")
+        -- Right side
+        local rx = x + 300
+        local ry = UI.Pos.Y + 70
 
--- ===== OTHER TABS =====
-Button(TabFrames.Movement,"Movement Feature")
-Button(TabFrames.Visuals,"Visual Feature")
-Button(TabFrames.Misc,"Misc Feature")
+        Labels.Shoot.Text="Shoot the Shooter: "..(State.ShootShooter and "ON" or "OFF")
+        Labels.Shoot.Position=Vector2.new(rx,ry)
+        Labels.Shoot.Visible=true
+        ry+=28
 
--- ===== DEFAULT TAB =====
-CurrentTab = "Main"
-TabFrames.Main.Visible = true
+        Labels.TP.Text="TP: "..(State.TP and "ON" or "OFF")
+        Labels.TP.Position=Vector2.new(rx,ry)
+        Labels.TP.Visible=true
+        ry+=28
+
+        GunLabel.Text="Gun: "..State.Gun
+        GunLabel.Position=Vector2.new(rx,ry)
+        GunLabel.Visible=true
+
+    elseif UI.Tab=="Misc" then
+        UnloadLabel.Position = Vector2.new(
+            UI.Pos.X + 160,
+            UI.Pos.Y + 80
+        )
+        UnloadLabel.Visible = true
+    end
+end)
