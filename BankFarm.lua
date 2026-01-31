@@ -1,60 +1,67 @@
--- NITO GUI | CLEAN REMAKE | XENO SAFE | UI ONLY
+-- NITO GUI | PLAYERGUI SAFE | GUARANTEED RENDER
 
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
 local LP = Players.LocalPlayer
 
--- ===== DESTROY OLD =====
+-- ===== WAIT FOR PLAYERGUI =====
+local PlayerGui = LP:WaitForChild("PlayerGui")
+
+-- ===== CLEAN OLD =====
 pcall(function()
-    game:GetService("CoreGui"):FindFirstChild("NITO_GUI"):Destroy()
+    PlayerGui:FindFirstChild("NITO_GUI"):Destroy()
 end)
 
 -- ===== SCREEN GUI =====
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NITO_GUI"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Parent = PlayerGui
 
 -- ===== MAIN FRAME =====
 local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(640, 440)
-Main.Position = UDim2.fromScale(0.5, 0.5) - UDim2.fromOffset(320, 220)
+Main.Size = UDim2.new(0, 640, 0, 440)
+Main.Position = UDim2.new(0.5, -320, 0.5, -220)
 Main.BackgroundColor3 = Color3.fromRGB(18,18,22)
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
 Main.Parent = ScreenGui
 
--- ===== TITLE =====
+-- ===== TITLE BAR =====
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1,0,0,40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(22,22,28)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Main
+
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Size = UDim2.new(1,0,1,0)
 Title.BackgroundTransparency = 1
 Title.Text = "N I T O"
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 26
 Title.TextColor3 = Color3.fromRGB(155,115,255)
-Title.Parent = Main
+Title.Parent = TitleBar
 
 -- ===== SIDEBAR =====
 local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.fromOffset(140, 400)
-Sidebar.Position = UDim2.fromOffset(0, 40)
+Sidebar.Size = UDim2.new(0,140,1,-40)
+Sidebar.Position = UDim2.new(0,0,0,40)
 Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,28)
 Sidebar.BorderSizePixel = 0
 Sidebar.Parent = Main
 
 local SideLayout = Instance.new("UIListLayout", Sidebar)
-SideLayout.Padding = UDim.new(0, 10)
-SideLayout.HorizontalAlignment = Center
-SideLayout.VerticalAlignment = Top
+SideLayout.Padding = UDim.new(0,10)
+SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-Instance.new("UIPadding", Sidebar).PaddingTop = UDim.new(0, 10)
+local Pad = Instance.new("UIPadding", Sidebar)
+Pad.PaddingTop = UDim.new(0,12)
 
--- ===== CONTENT HOLDER =====
+-- ===== CONTENT =====
 local Content = Instance.new("Frame")
-Content.Position = UDim2.fromOffset(150, 50)
-Content.Size = UDim2.new(1, -160, 1, -60)
+Content.Size = UDim2.new(1,-150,1,-50)
+Content.Position = UDim2.new(0,150,0,50)
 Content.BackgroundTransparency = 1
 Content.Parent = Main
 
@@ -63,35 +70,35 @@ local Tabs = {"Main","Movement","Visuals","Misc"}
 local TabFrames = {}
 local CurrentTab
 
-local function CreateTab(name)
+local function NewTab(name)
     local sf = Instance.new("ScrollingFrame")
-    sf.Size = UDim2.fromScale(1,1)
+    sf.Size = UDim2.new(1,0,1,0)
     sf.CanvasSize = UDim2.new()
-    sf.ScrollBarImageTransparency = 0.4
     sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    sf.ScrollBarImageTransparency = 0.4
     sf.Visible = false
     sf.BackgroundTransparency = 1
     sf.Parent = Content
 
     local layout = Instance.new("UIListLayout", sf)
-    layout.Padding = UDim.new(0, 12)
+    layout.Padding = UDim.new(0,12)
 
     TabFrames[name] = sf
 end
 
 for _,t in ipairs(Tabs) do
-    CreateTab(t)
+    NewTab(t)
 end
 
 -- ===== TAB BUTTONS =====
-local function CreateTabButton(name)
+for _,name in ipairs(Tabs) do
     local b = Instance.new("TextButton")
-    b.Size = UDim2.fromOffset(120, 32)
-    b.BackgroundColor3 = Color3.fromRGB(35,35,40)
+    b.Size = UDim2.new(0,120,0,32)
     b.Text = name
     b.Font = Enum.Font.Gotham
     b.TextSize = 14
-    b.TextColor3 = Color3.fromRGB(220,220,220)
+    b.TextColor3 = Color3.fromRGB(230,230,230)
+    b.BackgroundColor3 = Color3.fromRGB(35,35,40)
     b.BorderSizePixel = 0
     b.Parent = Sidebar
 
@@ -104,26 +111,22 @@ local function CreateTabButton(name)
     end)
 end
 
-for _,t in ipairs(Tabs) do
-    CreateTabButton(t)
-end
-
--- ===== UI ELEMENT HELPERS =====
-local function Toggle(parent, text)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.fromOffset(260, 34)
-    btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    btn.Text = text
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 14
-    btn.TextColor3 = Color3.fromRGB(230,230,230)
-    btn.BorderSizePixel = 0
-    btn.Parent = parent
+-- ===== ELEMENT HELPERS =====
+local function Button(parent,text)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0,260,0,34)
+    b.Text = text
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 14
+    b.TextColor3 = Color3.fromRGB(235,235,235)
+    b.BackgroundColor3 = Color3.fromRGB(35,35,40)
+    b.BorderSizePixel = 0
+    b.Parent = parent
 end
 
 local function Divider(parent)
     local d = Instance.new("Frame")
-    d.Size = UDim2.fromOffset(260, 2)
+    d.Size = UDim2.new(0,260,0,2)
     d.BackgroundColor3 = Color3.fromRGB(155,115,255)
     d.BorderSizePixel = 0
     d.Parent = parent
@@ -131,27 +134,26 @@ end
 
 -- ===== MAIN TAB CONTENT =====
 local MainTab = TabFrames.Main
-
-Toggle(MainTab, "Aimbot")
-Toggle(MainTab, "Orbit")
-Toggle(MainTab, "Orbit Speed")
-Toggle(MainTab, "Orbit Distance")
-Toggle(MainTab, "Orbit Mode")
-
-Divider(MainTab)
-
-Toggle(MainTab, "Triggerbot")
+Button(MainTab,"Aimbot")
+Button(MainTab,"Orbit")
+Button(MainTab,"Orbit Speed")
+Button(MainTab,"Orbit Distance")
+Button(MainTab,"Orbit Mode")
 
 Divider(MainTab)
 
-Toggle(MainTab, "Shoot the Shooter")
-Toggle(MainTab, "TP Toggle")
-Toggle(MainTab, "Select Gun")
+Button(MainTab,"Triggerbot")
 
--- ===== OTHER TABS (PLACEHOLDERS) =====
-Toggle(TabFrames.Movement, "Movement Feature 1")
-Toggle(TabFrames.Visuals, "Visual Feature 1")
-Toggle(TabFrames.Misc, "Misc Feature 1")
+Divider(MainTab)
+
+Button(MainTab,"Shoot the Shooter")
+Button(MainTab,"TP Toggle")
+Button(MainTab,"Select Gun")
+
+-- ===== OTHER TABS =====
+Button(TabFrames.Movement,"Movement Feature")
+Button(TabFrames.Visuals,"Visual Feature")
+Button(TabFrames.Misc,"Misc Feature")
 
 -- ===== DEFAULT TAB =====
 CurrentTab = "Main"
