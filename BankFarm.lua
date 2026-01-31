@@ -1,253 +1,266 @@
--- Nito Defense | Elite Menu (UI-Only)
--- Place as a LocalScript in StarterPlayerScripts
+-- NITO GUI | Proper Layout, No Overflow, Xeno Safe
 
--- Services
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
 
-local player = Players.LocalPlayer
-
--- =========================
--- STATE
--- =========================
+-- ================= STATE =================
 local State = {
-    DefenseMode = false,
-    AutoCounter = false,
-    AutoEquip = false,
-    AutoBuy = false,
-    AutoStomp = false,
-    SelectedWeapon = "None",
-    GUIVisible = true
+    Aimbot = false,
+    Orbit = false,
+    Triggerbot = false,
+    OrbitSpeed = 1,
+    OrbitDistance = 1,
+    OrbitMode = "Random",
+    ShootShooter = true,
+    TP = true,
+    SelectedGun = "Glock",
+    Binding = false,
+    ToggleKey = Enum.KeyCode.F
 }
 
--- =========================
--- THEME
--- =========================
-local Theme = {
-    Bg = Color3.fromRGB(16,16,18),
-    Panel = Color3.fromRGB(22,22,26),
-    Accent = Color3.fromRGB(120, 90, 255),
-    Text = Color3.fromRGB(235,235,235),
-    Muted = Color3.fromRGB(150,150,160),
-    On = Color3.fromRGB(90, 200, 140),
-    Off = Color3.fromRGB(200, 90, 90)
+local Guns = {
+    "Glock","Revolver","Shotgun","SMG","P90",
+    "Drum Gun","AR","AK-47","AUG","Rifle"
 }
 
--- =========================
--- GUI ROOT
--- =========================
+-- ================= GUI ROOT =================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NitoDefenseGUI"
+ScreenGui.IgnoreGuiInset = true
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.Parent = game:GetService("CoreGui")
 
-local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(360, 420)
-Main.Position = UDim2.fromScale(0.06, 0.18)
-Main.BackgroundColor3 = Theme.Bg
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
-Main.Parent = ScreenGui
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.fromOffset(520,360)
+Frame.Position = UDim2.fromScale(0.5,0.5) - UDim2.fromOffset(260,180)
+Frame.BackgroundColor3 = Color3.fromRGB(18,18,22)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
 
-local Corner = Instance.new("UICorner", Main)
-Corner.CornerRadius = UDim.new(0, 14)
-
--- =========================
--- HEADER
--- =========================
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1,0,0,54)
-Header.BackgroundColor3 = Theme.Panel
-Header.BorderSizePixel = 0
-Header.Parent = Main
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0,14)
-
+-- ================= TITLE =================
 local Title = Instance.new("TextLabel")
+Title.Text = "N I T O"
+Title.Size = UDim2.fromOffset(200,30)
+Title.Position = UDim2.fromScale(0.5,0) - UDim2.fromOffset(100,-10)
 Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1,-24,1,0)
-Title.Position = UDim2.fromOffset(12,0)
-Title.Text = "Nito  •  Defense"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 22
-Title.TextColor3 = Theme.Text
-Title.TextXAlignment = Left
-Title.Parent = Header
+Title.TextColor3 = Color3.fromRGB(155,115,255)
+Title.TextScaled = true
+Title.Parent = Frame
 
--- =========================
--- CONTENT
--- =========================
+-- ================= SIDEBAR =================
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.fromOffset(120,360)
+Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,28)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Frame
+
+local Tabs = {"Main","Movement","Visuals","Misc"}
+local TabButtons = {}
+
+local TabLayout = Instance.new("UIListLayout",Sidebar)
+TabLayout.Padding = UDim.new(0,10)
+TabLayout.HorizontalAlignment = Center
+TabLayout.VerticalAlignment = Center
+
+for _,name in ipairs(Tabs) do
+    local btn = Instance.new("TextButton")
+    btn.Text = name
+    btn.Size = UDim2.fromOffset(100,30)
+    btn.BackgroundColor3 = Color3.fromRGB(35,35,40)
+    btn.TextColor3 = Color3.fromRGB(200,200,200)
+    btn.BorderSizePixel = 0
+    btn.Parent = Sidebar
+    TabButtons[name] = btn
+end
+
+-- ================= TAB HOLDER =================
 local Content = Instance.new("Frame")
-Content.Position = UDim2.fromOffset(0,64)
-Content.Size = UDim2.new(1,0,1,-74)
+Content.Position = UDim2.fromOffset(130,50)
+Content.Size = UDim2.fromOffset(370,290)
 Content.BackgroundTransparency = 1
-Content.Parent = Main
+Content.Parent = Frame
 
-local Layout = Instance.new("UIListLayout", Content)
-Layout.Padding = UDim.new(0,10)
+local TabsFrames = {}
 
-local function pad(h)
-    local p = Instance.new("Frame")
-    p.Size = UDim2.new(1,-24,0,h)
-    p.BackgroundTransparency = 1
-    p.Parent = Content
+local function CreateTab(name)
+    local tab = Instance.new("Frame")
+    tab.Size = UDim2.fromScale(1,1)
+    tab.BackgroundTransparency = 1
+    tab.Visible = name=="Main"
+    tab.Parent = Content
+    TabsFrames[name] = tab
+    return tab
 end
 
-pad(0)
+for _,n in ipairs(Tabs) do CreateTab(n) end
+local MainTab = TabsFrames.Main
 
--- =========================
--- HELPERS
--- =========================
-local function makeRow(height)
-    local r = Instance.new("Frame")
-    r.Size = UDim2.new(1,-24,0,height)
-    r.BackgroundColor3 = Theme.Panel
-    r.BorderSizePixel = 0
-    Instance.new("UICorner", r).CornerRadius = UDim.new(0,12)
-    r.Parent = Content
-    return r
+-- ================= MAIN TAB LAYOUT =================
+local Left = Instance.new("Frame",MainTab)
+Left.Size = UDim2.fromScale(0.48,1)
+Left.BackgroundTransparency = 1
+
+local Right = Instance.new("Frame",MainTab)
+Right.Position = UDim2.fromScale(0.52,0)
+Right.Size = UDim2.fromScale(0.48,1)
+Right.BackgroundTransparency = 1
+
+local Divider = Instance.new("Frame",MainTab)
+Divider.Position = UDim2.fromScale(0.5,0)
+Divider.Size = UDim2.fromOffset(2,290)
+Divider.BackgroundColor3 = Color3.fromRGB(155,115,255)
+Divider.BorderSizePixel = 0
+
+local function Stack(parent)
+    local p = Instance.new("UIPadding",parent)
+    p.PaddingTop = UDim.new(0,5)
+    local l = Instance.new("UIListLayout",parent)
+    l.Padding = UDim.new(0,8)
+end
+Stack(Left)
+Stack(Right)
+
+-- ================= HELPERS =================
+local function Toggle(text,parent,callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.fromOffset(170,26)
+    b.BackgroundColor3 = Color3.fromRGB(35,35,40)
+    b.TextColor3 = Color3.fromRGB(230,230,230)
+    b.BorderSizePixel = 0
+    b.Text = text
+    b.Parent = parent
+    b.MouseButton1Click:Connect(callback)
+    return b
 end
 
-local function toggleRow(text, key)
-    local row = makeRow(52)
+local function Slider(name,min,max,parent,cb)
+    local wrap = Instance.new("Frame",parent)
+    wrap.Size = UDim2.fromOffset(170,40)
+    wrap.BackgroundTransparency = 1
 
-    local lbl = Instance.new("TextLabel")
+    local lbl = Instance.new("TextLabel",wrap)
+    lbl.Size = UDim2.fromScale(1,0.4)
     lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(1,-120,1,0)
-    lbl.Position = UDim2.fromOffset(14,0)
-    lbl.Text = text
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 16
-    lbl.TextColor3 = Theme.Text
-    lbl.TextXAlignment = Left
-    lbl.Parent = row
+    lbl.TextColor3 = Color3.fromRGB(230,230,230)
+    lbl.Text = name..": "..min
 
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.fromOffset(84,30)
-    btn.Position = UDim2.new(1,-98,0.5,-15)
-    btn.BackgroundColor3 = State[key] and Theme.On or Theme.Off
-    btn.BorderSizePixel = 0
-    btn.Text = State[key] and "ON" or "OFF"
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.TextColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
-    btn.Parent = row
+    local bar = Instance.new("Frame",wrap)
+    bar.Position = UDim2.fromScale(0,0.6)
+    bar.Size = UDim2.fromScale(1,0.15)
+    bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    bar.BorderSizePixel = 0
 
-    btn.MouseButton1Click:Connect(function()
-        State[key] = not State[key]
-        btn.Text = State[key] and "ON" or "OFF"
-        btn.BackgroundColor3 = State[key] and Theme.On or Theme.Off
-        print("[Nito] "..text..":", State[key])
+    local fill = Instance.new("Frame",bar)
+    fill.Size = UDim2.fromScale(0,1)
+    fill.BackgroundColor3 = Color3.fromRGB(155,115,255)
+    fill.BorderSizePixel = 0
+
+    bar.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 then
+            local move; move = UIS.InputChanged:Connect(function(m)
+                if m.UserInputType==Enum.UserInputType.MouseMovement then
+                    local r = math.clamp((m.Position.X-bar.AbsolutePosition.X)/bar.AbsoluteSize.X,0,1)
+                    local v = math.floor(min+(max-min)*r)
+                    fill.Size = UDim2.fromScale(r,1)
+                    lbl.Text = name..": "..v
+                    cb(v)
+                end
+            end)
+            UIS.InputEnded:Once(function() move:Disconnect() end)
+        end
     end)
 end
 
-local function dropdownRow(labelText, options)
-    local row = makeRow(62)
-
-    local lbl = Instance.new("TextLabel")
-    lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(1,-120,1,0)
-    lbl.Position = UDim2.fromOffset(14,0)
-    lbl.Text = labelText
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 16
-    lbl.TextColor3 = Theme.Text
-    lbl.TextXAlignment = Left
-    lbl.Parent = row
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.fromOffset(140,34)
-    btn.Position = UDim2.new(1,-154,0.5,-17)
-    btn.BackgroundColor3 = Theme.Bg
-    btn.BorderSizePixel = 0
-    btn.Text = State.SelectedWeapon
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 14
-    btn.TextColor3 = Theme.Text
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
-    btn.Parent = row
-
-    local idx = 1
-    btn.MouseButton1Click:Connect(function()
-        idx += 1
-        if idx > #options then idx = 1 end
-        State.SelectedWeapon = options[idx]
-        btn.Text = State.SelectedWeapon
-        print("[Nito] Selected weapon:", State.SelectedWeapon)
-    end)
-end
-
-local function statusRow()
-    local row = makeRow(80)
-
-    local lbl = Instance.new("TextLabel")
-    lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(1,-24,1,-12)
-    lbl.Position = UDim2.fromOffset(12,6)
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 14
-    lbl.TextColor3 = Theme.Muted
-    lbl.TextXAlignment = Left
-    lbl.TextYAlignment = Top
-    lbl.TextWrapped = true
-    lbl.Parent = row
-
-    local function refresh()
-        lbl.Text =
-            "Status\n"..
-            "Defense: "..(State.DefenseMode and "ON" or "OFF")..
-            "  |  Weapon: "..State.SelectedWeapon.."\n"..
-            "AutoCounter: "..tostring(State.AutoCounter)..
-            "  AutoEquip: "..tostring(State.AutoEquip)..
-            "  AutoBuy: "..tostring(State.AutoBuy)..
-            "  AutoStomp: "..tostring(State.AutoStomp)
-    end
-
-    refresh()
-    for k,_ in pairs(State) do
-        -- lightweight refresh
-        task.spawn(function()
-            while true do
-                refresh()
-                task.wait(0.4)
-            end
-        end)
-        break
-    end
-end
-
--- =========================
--- BUILD MENU
--- =========================
-toggleRow("Defense Mode", "DefenseMode")
-toggleRow("Auto Counter", "AutoCounter")
-toggleRow("Auto Equip Weapon", "AutoEquip")
-toggleRow("Auto Buy Weapon", "AutoBuy")
-toggleRow("Auto Stomp", "AutoStomp")
-
-dropdownRow("Weapon Selector", {
-    "None",
-    "Revolver",
-    "Shotgun",
-    "SMG",
-    "AR",
-    "Knife"
-})
-
-statusRow()
-
--- =========================
--- HOTKEYS
--- =========================
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.F2 then
-        State.GUIVisible = not State.GUIVisible
-        ScreenGui.Enabled = State.GUIVisible
-        print("[Nito] GUI:", State.GUIVisible)
-    end
+-- ================= LEFT CONTENT =================
+Toggle("Aimbot: OFF",Left,function()
+    State.Aimbot = not State.Aimbot
 end)
 
-print("Nito Defense Menu loaded. F2 toggles GUI.")
+Toggle("Orbit: OFF",Left,function()
+    State.Orbit = not State.Orbit
+end)
+
+Slider("Orbit Speed",1,20,Left,function(v) State.OrbitSpeed=v end)
+Slider("Orbit Distance",1,50,Left,function(v) State.OrbitDistance=v end)
+
+Toggle("Orbit Mode: Random",Left,function(btn)
+    State.OrbitMode = State.OrbitMode=="Random" and "Velocity" or "Random"
+end)
+
+Toggle("Triggerbot: OFF",Left,function()
+    State.Triggerbot = not State.Triggerbot
+end)
+
+Toggle("Toggle Key: F",Left,function(btn)
+    State.Binding = true
+    btn.Text = "Press a key..."
+end)
+
+-- ================= RIGHT CONTENT =================
+Toggle("Shoot the Shooter: ON",Right,function()
+    State.ShootShooter = not State.ShootShooter
+end)
+
+Toggle("TP Toggle: ON",Right,function()
+    State.TP = not State.TP
+end)
+
+-- ================= GUN DROPDOWN =================
+local Drop = Instance.new("Frame",Right)
+Drop.Size = UDim2.fromOffset(170,140)
+Drop.BackgroundColor3 = Color3.fromRGB(30,30,35)
+Drop.BorderSizePixel = 0
+
+local Search = Instance.new("TextBox",Drop)
+Search.Size = UDim2.fromOffset(160,24)
+Search.Position = UDim2.fromOffset(5,5)
+Search.PlaceholderText = "Search gun..."
+Search.TextColor3 = Color3.fromRGB(230,230,230)
+Search.BackgroundColor3 = Color3.fromRGB(40,40,45)
+Search.BorderSizePixel = 0
+
+local List = Instance.new("ScrollingFrame",Drop)
+List.Position = UDim2.fromOffset(0,35)
+List.Size = UDim2.fromScale(1,1)
+List.CanvasSize = UDim2.new()
+List.ScrollBarImageTransparency = 0.5
+Instance.new("UIListLayout",List)
+
+local function Refresh(filter)
+    for _,c in pairs(List:GetChildren()) do
+        if c:IsA("TextButton") then c:Destroy() end
+    end
+    for _,g in ipairs(Guns) do
+        if not filter or g:lower():find(filter) then
+            local b = Instance.new("TextButton",List)
+            b.Text = g
+            b.Size = UDim2.fromOffset(160,26)
+            b.BackgroundColor3 = Color3.fromRGB(40,40,45)
+            b.TextColor3 = Color3.fromRGB(230,230,230)
+            b.BorderSizePixel = 0
+            b.MouseButton1Click:Connect(function()
+                State.SelectedGun = g
+            end)
+        end
+    end
+end
+Refresh()
+
+Search:GetPropertyChangedSignal("Text"):Connect(function()
+    Refresh(Search.Text:lower())
+end)
+
+-- ================= TAB SWITCH =================
+for name,btn in pairs(TabButtons) do
+    btn.MouseButton1Click:Connect(function()
+        for _,t in pairs(TabsFrames) do t.Visible=false end
+        TabsFrames[name].Visible=true
+    end)
+end
+
+UIS.InputBegan:Connect(function(i)
+    if State.Binding and i.UserInputType==Enum.UserInputType.Keyboard then
+        State.ToggleKey = i.KeyCode
+        State.Binding = false
+    end
+end)
